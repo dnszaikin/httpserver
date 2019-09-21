@@ -9,8 +9,10 @@
 #ifndef SRC_UNIXCLIENTSOCKET_H_
 #define SRC_UNIXCLIENTSOCKET_H_
 
-#include <vector>
 #include "AbstractSocket.h"
+#include "Types.h"
+
+#include <vector>
 
 namespace network {
 
@@ -24,10 +26,16 @@ private:
 		return _name;
 	}
 
-public:
-	UnixClientSocket(): AbstractSocket() {} ;
+	byte_vector _receive_buffer;
+	byte_vector _send_buffer;
+	size_t _send_count;
 
-	UnixClientSocket(const UnixClientSocket&): AbstractSocket() {} ;
+public:
+	UnixClientSocket(): AbstractSocket(), _send_count(0) {
+		_receive_buffer.reserve(READ_BUF_SIZE);
+
+	} ;
+
 	void init(std::string_view host, std::string_view port, int socket_fd) override {
 		set_host(host);
 		set_port(port);
@@ -41,36 +49,35 @@ public:
 
 	virtual ~UnixClientSocket() {};
 
-	void send() override {
+	callback begin_send() override {
 		bool close_connection = false;
+		bool complete = false;
 
-		while (is_connected()) {
-			std::vector<char> buf;
+		ssize_t size = 0;
+		if (is_connected()) {
 
-			ssize_t size = ::send(get_socket(), buf.data(), buf.size(), 0);
+			LOG_DEBUG(get_name() << ": sending " << _send_buffer.size() << " bytes, raw [" << std::string_view(&_send_buffer.data()[0], size) << "]");
+
+			size = ::send(get_socket(), _send_buffer.data(), _send_buffer.size(), 0);
 
 			if (size < 0) {
 				if (errno != EWOULDBLOCK || errno != EAGAIN) {
 					LOG_ERROR(get_name() << ": send failed. Error: " << strerr());
 					close_connection = true;
 				}
-				break;
-			} else if (size < buf.size()){
-				LOG_DEBUG(get_name() << ": sending " << buf.size() << " bytes, raw [" << std::string_view(&buf.data()[0], size) << "]");
+//				break;
+			} else if (size < _send_buffer.size()){
 
-				std::vector<char> tmp;
-				tmp.assign(buf.data()[0]+size, buf.size() - size);
-				buf.swap(tmp);
-
-				LOG_DEBUG(get_name() << ": remaining " << buf.size() << " bytes, raw [" << std::string_view(&buf.data()[0], buf.size()) << "]");
-			} else if (size == buf.size()) {
-
-				LOG_DEBUG(get_name() << ": sent " << buf.size() << " bytes, raw [" << std::string_view(&buf.data()[0], buf.size()) << "]");
-				break;
+				byte_vector tmp;
+				tmp.assign(_send_buffer.data()[0]+size, _send_buffer.size() - size);
+				_send_buffer.swap(tmp);
+			} else if (size == _send_buffer.size()) {
+				complete = true;
+//				break;
 			} else if (size == 0){
-				LOG_INFO(get_name() << ": client1 disconnected.");
+				LOG_INFO(get_name() << ": client disconnected.");
 				close_connection = true;
-				break;
+//				break;
 			}
 		}
 
@@ -78,51 +85,71 @@ public:
 		   shutdown();
 		   close();
 		}
+
+		return std::bind(&UnixClientSocket::end_send, this, complete, size);
 	}
 
-	void recv() override {
+	callback begin_recv() override {
 		bool close_connection = false;
+		bool complete = false;
 
 		char buffer[READ_BUF_SIZE];
 
-		std::vector<char> received_buffer;
+		ssize_t size = 0;
+		if (is_connected()) {
 
-		received_buffer.clear();
-		received_buffer.reserve(READ_BUF_SIZE);
-
-		while (is_connected()) {
-
-			ssize_t size = ::recv(get_socket(), &buffer, READ_BUF_SIZE, 0);
-
+			 size = ::recv(get_socket(), &buffer, READ_BUF_SIZE, 0);
 			//error when read
 			if (size < 0) {
 			   if (errno != EWOULDBLOCK || errno != EAGAIN) {
 				   LOG_ERROR(get_name() << ": recv failed. Error: " << strerr());
 				   close_connection = true;
 			   }
-			   break;
+//			   break;
 			}
 			//client disconnected
 			else if (size == 0) {
 				close_connection = true;
 				LOG_INFO(get_name() << ": client disconnected.");
-				break;
+//				break;
 			} else if (size == READ_BUF_SIZE) {
-				std::vector<char> recv_buff(buffer, buffer + size);
-		    	received_buffer.insert(received_buffer.end(), recv_buff.begin(), recv_buff.end());
-		    	LOG_DEBUG(get_name() << ": received " << size << " bytes, raw [" << std::string_view(&received_buffer.data()[0], received_buffer.size()) << "]");
+				byte_vector recv_buff(buffer, buffer + size);
+		    	_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
+		    	_send_count += size;
 			} else if (size < READ_BUF_SIZE) {
-				std::vector<char> recv_buff(buffer, buffer + size);
-		    	received_buffer.insert(received_buffer.end(), recv_buff.begin(), recv_buff.end());
-
-				LOG_DEBUG(get_name() << ": received " << size << " bytes, raw [" << std::string_view(&received_buffer.data()[0], received_buffer.size()) << "]");
-				break;
+				byte_vector recv_buff(buffer, buffer + size);
+		    	_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
+		    	complete = true;
+		    	_send_count += size;
+//				break;
 			}
 		}
 
 		if (close_connection) {
 		   shutdown();
 		   close();
+		}
+
+		return std::bind(&UnixClientSocket::end_recv, this, complete, size);
+	}
+
+	void end_recv(bool complete, size_t size) override {
+		if (!complete) {
+			LOG_DEBUG(get_name() << ": received " << size << " bytes");
+		} else {
+			LOG_DEBUG(get_name() << ": received " << _receive_buffer.size() << " bytes, raw ["
+					<< std::string_view(&_receive_buffer.data()[0],	_receive_buffer.size()) << "]");
+			LOG_DEBUG(get_name() << ": receive complete!");
+			_receive_buffer.clear();
+		}
+	}
+
+	void end_send(bool complete, size_t size) override {
+		if (!complete) {
+			LOG_DEBUG(get_name() << ": sent " << size << " from " << _send_buffer.size() << " bytes");
+		} else {
+			LOG_DEBUG(get_name() << ": send complete! Sent: " << _send_count << " bytes");
+			_send_buffer.clear();
 		}
 	}
 };

@@ -96,8 +96,11 @@ namespace network {
 			_socket = socket;
 		}
 
-		void recv() override {}
-		void send() override {}
+		callback begin_recv() override { return std::bind(&AbstractSocket::end_recv, this, false, 0); }
+		callback begin_send() override { return std::bind(&AbstractSocket::end_send, this, false, 0);}
+		void end_recv(bool, size_t) override {}
+		void end_send(bool, size_t) override {}
+
 		virtual ~AbstractSocket() { };
 	};
 }

@@ -15,22 +15,8 @@
 #include "Logger.h"
 #include "PollingHelper.h"
 
-//#include <sys/ioctl.h>
-//#include <sys/poll.h>
-//#include <sys/socket.h>
-//#include <sys/time.h>
-//#include <sys/un.h>
-//#include <netinet/in.h>
-//#include <errno.h>
-//#include <unistd.h>
-//#include <iostream>
-//#include <string.h>
-
-//#include <memory>
-//#include <vector>
-//#include <unordered_map>
-
 #include <future>
+#include <functional>
 
 namespace network {
 
@@ -99,18 +85,22 @@ namespace network {
 
 								LOG_INFO(ucs->get_host() << ":" << ucs->get_port() << " connected, socket: " << ucs->get_socket());
 							}
-						} else {
-							LOG_INFO("here1");
 						}
 					//it is not listening socket therefore an existing connection - do IO operations
 					} else {
 						auto&& client = _polling.get_client(it->fd);
 
 						if (it->revents & POLLIN) {
-							auto async_recv = std::async(&ISocket::recv, client);
-							auto async_send = std::async(&ISocket::send, client);
-							async_recv.get();
-							async_send.get();
+							auto async_recv = std::async(&ISocket::begin_recv, client);
+							auto async_send = std::async(&ISocket::begin_send, client);
+
+							async_recv.wait();
+							async_send.wait();
+
+							auto end_recv = async_recv.get();
+							auto end_send = async_send.get();
+							end_recv();
+							end_send();
 						}
 
 						if (!client->is_connected()) {
