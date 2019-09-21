@@ -42,7 +42,7 @@ namespace network {
 			int status = ::shutdown(get_socket(), SHUT_RDWR);
 
 			if (status < 0) {
-				throw std::runtime_error("Unable to shutdown socket. Error: " + strerr());
+				LOG_ERROR("Unable to shutdown socket. Error: " + strerr());
 			}
 		}
 
@@ -100,6 +100,10 @@ namespace network {
 		callback begin_send() override { return std::bind(&AbstractSocket::end_send, this, false, 0);}
 		void end_recv(bool, size_t) override {}
 		void end_send(bool, size_t) override {}
+
+		void append_data_to_send(const byte_vector& data) override {}
+
+		void swap_received(byte_vector& data) override {}
 
 		virtual ~AbstractSocket() { };
 	};

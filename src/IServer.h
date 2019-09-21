@@ -17,6 +17,7 @@ namespace network {
 
 		virtual void listen(std::string_view port) = 0;
 		virtual void stop() = 0;
+		virtual int get_socket() = 0;
 		virtual ~IServer() {};
 	};
 }

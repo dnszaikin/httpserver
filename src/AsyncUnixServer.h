@@ -31,6 +31,12 @@ namespace network {
 
 		};
 
+		int get_socket() override { return _socket->get_socket();}
+
+		const std::unordered_map<int, ISocket::ptr>& get_clients() {
+			return _polling.get_clients();
+		}
+
 		void listen(std::string_view port) override {
 			set_port(port);
 
@@ -99,8 +105,18 @@ namespace network {
 
 							auto end_recv = async_recv.get();
 							auto end_send = async_send.get();
+
 							end_recv();
 							end_send();
+
+//							byte_vector bv;
+//							client->swap_received(bv);
+//							client->append_data_to_send(bv);
+
+//							async_send = std::async(&ISocket::begin_send, client);
+//							async_send.wait();
+//							end_send = async_send.get();
+//							end_send();
 						}
 
 						if (!client->is_connected()) {

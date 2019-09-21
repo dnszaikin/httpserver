@@ -13,6 +13,7 @@
 #include "Types.h"
 
 #include <vector>
+#include <mutex>
 
 namespace network {
 
@@ -29,12 +30,26 @@ private:
 	byte_vector _receive_buffer;
 	byte_vector _send_buffer;
 	size_t _send_count;
+	std::mutex _send_buffer_mutex;
+	std::mutex _receive_buffer_mutex;
 
 public:
 	UnixClientSocket(): AbstractSocket(), _send_count(0) {
 		_receive_buffer.reserve(READ_BUF_SIZE);
 
 	} ;
+
+	void append_data_to_send(const byte_vector& data) override {
+		std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+
+		_send_buffer.insert(_send_buffer.end(), data.begin(), data.end());
+	}
+
+	void swap_received(byte_vector& data) override {
+		std::lock_guard<std::mutex> lock(_receive_buffer_mutex);
+
+		_receive_buffer.swap(data);
+	}
 
 	void init(std::string_view host, std::string_view port, int socket_fd) override {
 		set_host(host);
@@ -54,11 +69,18 @@ public:
 		bool complete = false;
 
 		ssize_t size = 0;
-		if (is_connected()) {
+		if (is_connected() && _send_buffer.size() > 0) {
 
-			LOG_DEBUG(get_name() << ": sending " << _send_buffer.size() << " bytes, raw [" << std::string_view(&_send_buffer.data()[0], size) << "]");
+			byte_vector send_buffer;
 
-			size = ::send(get_socket(), _send_buffer.data(), _send_buffer.size(), 0);
+			{
+				std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+				send_buffer.swap(_send_buffer);
+			}
+
+			LOG_DEBUG(get_name() << ": sending " << send_buffer.size() << " bytes, raw [" << std::string_view(&send_buffer.data()[0], send_buffer.size()) << "]");
+
+			size = ::send(get_socket(), send_buffer.data(), send_buffer.size(), 0);
 
 			if (size < 0) {
 				if (errno != EWOULDBLOCK || errno != EAGAIN) {
@@ -66,12 +88,18 @@ public:
 					close_connection = true;
 				}
 //				break;
-			} else if (size < _send_buffer.size()){
+			} else if (size < send_buffer.size()){
 
 				byte_vector tmp;
-				tmp.assign(_send_buffer.data()[0]+size, _send_buffer.size() - size);
-				_send_buffer.swap(tmp);
-			} else if (size == _send_buffer.size()) {
+				tmp.assign(send_buffer.data()[0]+size, send_buffer.size() - size);
+				send_buffer.swap(tmp);
+
+				{
+					std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+					send_buffer.insert(send_buffer.end(), _send_buffer.begin(), _send_buffer.end());
+					_send_buffer.swap(send_buffer);
+				}
+			} else if (size == send_buffer.size()) {
 				complete = true;
 //				break;
 			} else if (size == 0){
@@ -114,13 +142,18 @@ public:
 //				break;
 			} else if (size == READ_BUF_SIZE) {
 				byte_vector recv_buff(buffer, buffer + size);
-		    	_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
-		    	_send_count += size;
+
+				{
+					std::lock_guard<std::mutex> lock(_receive_buffer_mutex);
+					_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
+				}
 			} else if (size < READ_BUF_SIZE) {
 				byte_vector recv_buff(buffer, buffer + size);
-		    	_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
+				{
+					std::lock_guard<std::mutex> lock(_receive_buffer_mutex);
+					_receive_buffer.insert(_receive_buffer.end(), recv_buff.begin(), recv_buff.end());
+				}
 		    	complete = true;
-		    	_send_count += size;
 //				break;
 			}
 		}
@@ -140,16 +173,20 @@ public:
 			LOG_DEBUG(get_name() << ": received " << _receive_buffer.size() << " bytes, raw ["
 					<< std::string_view(&_receive_buffer.data()[0],	_receive_buffer.size()) << "]");
 			LOG_DEBUG(get_name() << ": receive complete!");
-			_receive_buffer.clear();
 		}
 	}
 
 	void end_send(bool complete, size_t size) override {
 		if (!complete) {
-			LOG_DEBUG(get_name() << ": sent " << size << " from " << _send_buffer.size() << " bytes");
+			if (size > 0) {
+		    	_send_count += size;
+				LOG_DEBUG(get_name() << ": sent " << size << " from " << _send_buffer.size() << " bytes");
+			}
 		} else {
+	    	_send_count += size;
 			LOG_DEBUG(get_name() << ": send complete! Sent: " << _send_count << " bytes");
 			_send_buffer.clear();
+			_send_count = 0;
 		}
 	}
 };

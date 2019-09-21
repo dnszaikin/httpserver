@@ -30,6 +30,7 @@ namespace network {
 
 		void listen(std::string_view) override {};
 
+		int get_socket() override { return -1;};
 		/*
 		 * close connection, but not free socket!
 		 */

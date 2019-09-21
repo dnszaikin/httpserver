@@ -78,6 +78,10 @@ namespace network {
 			throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
 		}
 
+		const std::unordered_map<int, ISocket::ptr>& get_clients() const {
+			return _clients;
+		}
+
 		std::vector<pollfd>& get_polling() {
 			return _poll_fds;
 		}

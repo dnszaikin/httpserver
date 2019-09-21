@@ -11,6 +11,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include "Types.h"
 
 namespace network {
 	typedef std::function<void()> callback;
@@ -31,6 +32,8 @@ namespace network {
 		virtual void end_recv(bool, size_t) = 0;
 		virtual void end_send(bool, size_t) = 0;
 		virtual bool is_connected() const = 0;
+		virtual void swap_received(byte_vector&) = 0;
+		virtual void append_data_to_send(const byte_vector&) = 0;
 		virtual ~ISocket() {};
 	};
 }

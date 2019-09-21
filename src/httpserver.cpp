@@ -8,6 +8,8 @@
 #include <iostream>
 
 #include "AsyncUnixServer.h"
+#include <functional>
+#include <future>
 
 using namespace std;
 
@@ -22,10 +24,23 @@ public:
 int main(int argc, char **argv) {
 
 	try {
-		network::AsyncUnixServer socket;
+		network::AsyncUnixServer server;
 
-		socket.listen("8888");
-		socket.stop();
+		std::thread(&network::AsyncUnixServer::listen, server, "8888").detach();
+
+		while (true) {
+//			auto&& clients = server.get_clients();
+//			for (auto&& item : clients) {
+//				auto&& client = item.second;
+//				if (client->get_socket() != server.get_socket()) {
+//					byte_vector bv;
+//					client->swap_received(bv);
+//					client->append_data_to_send(bv);
+//				}
+//			}
+		}
+
+		server.stop();
 	} catch (const std::exception& e) {
 		cerr << "Error: " <<  e.what() << endl;
 	}
