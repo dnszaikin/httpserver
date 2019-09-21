@@ -16,6 +16,8 @@ class UnixClientSocket: public network::AbstractSocket {
 public:
 	UnixClientSocket(): AbstractSocket() {} ;
 
+	UnixClientSocket(const UnixClientSocket&): AbstractSocket() {} ;
+
 	void init(std::string_view host, std::string_view port, int socket_fd) override {
 		set_host(host);
 		set_port(port);

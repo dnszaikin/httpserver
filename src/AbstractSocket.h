@@ -54,21 +54,21 @@ namespace network {
 		/*
 		 * get IP Port
 		 */
-		std::string_view get_port() const {
+		std::string_view get_port() const override {
 			return _port;
 		}
 
 		/*
 		 * get host name
 		 */
-		std::string_view get_host() const {
+		std::string_view get_host() const override {
 			return _host;
 		}
 
 		/*
 		 * returns socket descriptor
 		 */
-		int get_socket() const {
+		int get_socket() const override {
 			return _socket;
 		}
 

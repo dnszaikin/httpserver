@@ -26,16 +26,9 @@ namespace network {
 
 	class UnixServerSocket: public AbstractSocket {
 	private:
-		std::unique_ptr<struct addrinfo, handle_deleter> _addr;
+		std::unique_ptr<addrinfo, handle_deleter> _addr;
 	public:
 		UnixServerSocket(): AbstractSocket() {};
-
-		/*
-		 * returns addrinfo structure
-		 */
-		struct addrinfo& get_addr() const {
-			return *_addr.get();
-		};
 
 		void init(std::string_view host, std::string_view port) override {
 			set_host(host);
@@ -81,6 +74,12 @@ namespace network {
 
 			if (status < 0) {
 				throw std::runtime_error("Failed to set non-blocking mode. Error: " + strerr());
+			}
+
+			status = bind(get_socket(), _addr->ai_addr, _addr->ai_addrlen);
+
+			if (status < 0) {
+				throw std::runtime_error("Failed to bind socket. Error: " + strerr());
 			}
 		}
 
