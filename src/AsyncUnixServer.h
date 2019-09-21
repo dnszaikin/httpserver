@@ -30,6 +30,8 @@
 //#include <vector>
 //#include <unordered_map>
 
+#include <future>
+
 namespace network {
 
 	class AsyncUnixServer: public AbstractServer {
@@ -81,10 +83,9 @@ namespace network {
 				std::vector<pollfd>::iterator it;
 				auto&& end = poll_fds.end();
 		        for (it = poll_fds.begin(); it != end; ++it) {
-
-					if (it->revents & POLLIN) {
-						//accept connection on listening socket
-						if(it->fd == _socket->get_socket()) {
+					//accept connection on listening socket
+					if(it->fd == _socket->get_socket()) {
+						if (it->revents & POLLIN) {
 							client_len = sizeof(client_address);
 							client_sockfd = accept(_socket->get_socket(), &client_address, &client_len);
 
@@ -98,51 +99,22 @@ namespace network {
 
 								LOG_INFO(ucs->get_host() << ":" << ucs->get_port() << " connected, socket: " << ucs->get_socket());
 							}
-						//it is not listening socket therefore an existing connection - do IO operations
 						} else {
-							auto&& client = _polling.get_client(it->fd);
+							LOG_INFO("here1");
+						}
+					//it is not listening socket therefore an existing connection - do IO operations
+					} else {
+						auto&& client = _polling.get_client(it->fd);
 
-							bool close_connection = false;
+						if (it->revents & POLLIN) {
+							auto async_recv = std::async(&ISocket::recv, client);
+							auto async_send = std::async(&ISocket::send, client);
+							async_recv.get();
+							async_send.get();
+						}
 
-							while (true) {
-								char buffer[80];
-
-								ssize_t status = recv(it->fd, &buffer, sizeof(buffer), 0);
-
-								//error when read
-								if (status < 0) {
-								   if (errno != EWOULDBLOCK) {
-									   LOG_ERROR("Recv failed. Error: " << strerr());
-									   close_connection = true;
-								   }
-								   break;
-								}
-								//client disconnected
-								else if (status == 0) {
-									close_connection = true;
-									LOG_INFO("Client disconnected.");
-									break;
-								}
-								//do read
-								else {
-									ssize_t size = status;
-									LOG_DEBUG("Received bytes: " << size);
-									status = send(it->fd, buffer, size, 0);
-
-									if (status < 0) {
-										LOG_ERROR("Send failed. Error: " << strerr());
-										close_connection = true;
-										break;
-									} else {
-										LOG_DEBUG("writing to client on fd " << it->fd << ", write size: " << size);
-									}
-								}
-							}
-
-							if (close_connection) {
-							   LOG_DEBUG("Removing client. Socket: " << it->fd);
-							   _polling.delete_client(it);
-							}
+						if (!client->is_connected()) {
+							_polling.delete_client(it);
 						}
 					}
 				}

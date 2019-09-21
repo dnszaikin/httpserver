@@ -29,13 +29,16 @@ namespace network {
 		std::string _host;
 		std::string _port;
 		int _socket;
+		bool _is_connected;
 	public:
-		AbstractSocket(): _host{}, _port{}, _socket(-1) {};
+		AbstractSocket(): _host{}, _port{}, _socket(-1), _is_connected(false) {};
 
 		void init(std::string_view, std::string_view) override {};
 		void init(std::string_view, std::string_view, int) override {};
 
 		void shutdown() override {
+			_is_connected = false;
+
 			int status = ::shutdown(get_socket(), SHUT_RDWR);
 
 			if (status < 0) {
@@ -43,10 +46,19 @@ namespace network {
 			}
 		}
 
+		virtual void set_connected() {
+			_is_connected = true;
+		}
+
+		bool is_connected() const override {
+			return _is_connected;
+		}
+
 		void close() override {
+			_is_connected = false;
 			int status = ::close(get_socket());
 
-			if (!status) {
+			if (status < 0) {
 				LOG_ERROR("Failed to close socket. Error: " << strerr());
 			}
 		}
@@ -84,7 +96,9 @@ namespace network {
 			_socket = socket;
 		}
 
-		virtual ~AbstractSocket() {};
+		void recv() override {}
+		void send() override {}
+		virtual ~AbstractSocket() { };
 	};
 }
 

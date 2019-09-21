@@ -81,6 +81,8 @@ namespace network {
 			if (status < 0) {
 				throw std::runtime_error("Failed to bind socket. Error: " + strerr());
 			}
+
+			set_connected();
 		}
 
 		virtual ~UnixServerSocket() {

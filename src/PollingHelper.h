@@ -67,7 +67,7 @@ namespace network {
 			return _last_client;
 		}
 
-		const ISocket::ptr get_client(int socket) const {
+		ISocket::ptr get_client(int socket) const {
 
 			auto&& it = _clients.find(socket);
 
@@ -86,7 +86,6 @@ namespace network {
 			auto&& _it = _clients.find(it->fd);
 
 			if (_it != _clients.end()) {
-				::close(it->fd);
 				_clients.erase(_it);
 				_poll_fds.erase(it);
 			} else {

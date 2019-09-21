@@ -23,7 +23,9 @@ namespace network {
 		virtual std::string_view get_port() const = 0;
 		virtual std::string_view get_host() const = 0;
 		virtual int get_socket() const = 0;
-
+		virtual void recv() = 0;
+		virtual void send() = 0;
+		virtual bool is_connected() const = 0;
 		virtual ~ISocket() {};
 	};
 }
