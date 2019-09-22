@@ -11,16 +11,9 @@
 
 #include "AsyncUnixServer.h"
 #include "WebSession.h"
+#include "WebSessionHandler.h"
 
 using namespace std;
-
-class HTTPServer {
-private:
-public:
-	HTTPServer();
-	virtual ~HTTPServer();
-
-};
 
 int main(int argc, char **argv) {
 
@@ -29,31 +22,17 @@ int main(int argc, char **argv) {
 
 		network::AsyncUnixServer<web> server;
 
-//		std::thread(&network::AsyncUnixServer<web>::listen, std::ref(server), "8888").detach();
+		auto&& wshandler = std::make_shared<network::web::WebSessionHandler>();
 
-		//waiting while server initialization is complete
+		server.add_handler(wshandler);
+
 		server.listen("8080");
-
-//		while (!server.is_listening()) { std::this_thread::yield(); };
-
-//		while (server.is_listening()) {
-////			auto&& clients = server.get_clients();
-////			//LOG_INFO("Clients: " << clients.size());
-////			for (auto&& item : clients) {
-////				auto&& client = item.second;
-////				if (client->get_socket() != server.get_socket()) {
-////					byte_vector bv;
-////					client->swap_received(bv);
-////					LOG_INFO(client->get_name() << ": Received " << bv.size() << " bytes" );
-////					client->append_data_to_send(bv);
-////				}
-////			}
-//			std::this_thread::yield();
-//		}
 
 		server.stop();
 	} catch (const std::exception& e) {
 		cerr << "Error: " <<  e.what() << endl;
+	} catch (...) {
+		cerr << "Unexpected program termination" << endl;
 	}
 	return 0;
 }

@@ -9,14 +9,15 @@
 #ifndef SRC_ASYNCUNIXSOCKET_H_
 #define SRC_ASYNCUNIXSOCKET_H_
 
+#include <future>
+#include <functional>
+
 #include "AbstractServer.h"
 #include "UnixServerSocket.h"
 #include "UnixClientSocket.h"
 #include "Logger.h"
 #include "PollingHelper.h"
-
-#include <future>
-#include <functional>
+#include "Types.h"
 
 namespace network {
 
@@ -26,6 +27,7 @@ namespace network {
 		UnixServerSocket::ptr _socket;
 		size_t _max_clients; //maximum of allowed clients
 		PollingHelper<T> _polling;
+		std::shared_ptr<IHandler> _handler;
 	public:
 
 		AsyncUnixServer() : AbstractServer(), _socket(std::make_shared<UnixServerSocket>()), _max_clients(32) {
@@ -36,6 +38,10 @@ namespace network {
 
 		const std::unordered_map<int, ISocket::ptr>& get_clients() {
 			return _polling.get_clients();
+		}
+
+		void add_handler(std::shared_ptr<IHandler> handler) {
+			_handler = handler;
 		}
 
 		void listen(std::string_view port) override {
@@ -86,7 +92,7 @@ namespace network {
 								LOG_INFO("Maximum number of allowed clients is reached. Max: " << _max_clients);
 								::close(client_sockfd);
 							} else {
-								_polling.add_client(client_sockfd, client_address);
+								_polling.add_client(client_sockfd, client_address, _handler);
 
 								auto&& ucs =  _polling.get_last_client();
 
@@ -99,29 +105,20 @@ namespace network {
 
 						if (it->revents & POLLIN) {
 
-//							auto recv_result = client->begin_recv();
-//							recv_result();
-//							auto send_result = client->begin_send();
-//							send_result();
-							auto async_recv = std::async(&ISocket::begin_recv, client);
-							auto async_send = std::async(&ISocket::begin_send, client);
-
-							async_recv.wait();
-							async_send.wait();
-
-							auto end_recv = async_recv.get();
-							auto end_send = async_send.get();
-
-							end_recv();
-							end_send();
-
-//							byte_vector bv;
-//							client->swap_received(bv);
-//							client->append_data_to_send(bv);
-
-//							async_send = std::async(&ISocket::begin_send, client);
+							auto recv_result = client->begin_recv();
+							recv_result();
+							auto send_result = client->begin_send();
+							send_result();
+//							auto async_recv = std::async(&ISocket::begin_recv, client);
+//							auto async_send = std::async(&ISocket::begin_send, client);
+//
+//							async_recv.wait();
 //							async_send.wait();
-//							end_send = async_send.get();
+//
+//							auto end_recv = async_recv.get();
+//							auto end_send = async_send.get();
+//
+//							end_recv();
 //							end_send();
 						}
 

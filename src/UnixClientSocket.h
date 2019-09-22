@@ -52,8 +52,8 @@ public:
 		_receive_buffer.swap(data);
 	}
 
-	void init(std::string_view host, std::string_view port, int socket_fd) override {
-		AbstractSocket::init(host, port, socket_fd);
+	void init(std::string_view host, std::string_view port, int socket_fd, std::shared_ptr<IHandler> handler) override {
+		AbstractSocket::init(host, port, socket_fd, handler);
 
 		int opt = 1;
 		ioctl(get_socket(), FIONBIO, &opt);

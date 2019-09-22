@@ -48,11 +48,12 @@ namespace network {
 			build_name();
 		};
 
-		void init(std::string_view host, std::string_view port, int socket) override {
+		void init(std::string_view host, std::string_view port, int socket, std::shared_ptr<IHandler> handler) override {
 			set_host(host);
 			set_port(port);
 			set_socket(socket);
 			build_name();
+			_handler = handler;
 		};
 
 		void shutdown() override {

@@ -8,8 +8,8 @@
 #ifndef SRC_WEBSESSION_H_
 #define SRC_WEBSESSION_H_
 
-#include "HTTPResponses.h"
-#include "HTTP.h"
+#include "HTTPRequestParser.h"
+#include "HTTPResponseBuilder.h"
 
 namespace network::web {
 
@@ -17,39 +17,8 @@ namespace network::web {
 	class WebSession: public T {
 	private:
 		bool _keepalive;
-		HTTP _http;
-
-		void get_request_type() {
-
-		}
-
-		std::string build_http_response(uint16_t code) {
-
-			std::stringstream sbody;
-			size_t size = 0;
-
-			switch (code) {
-				case 200: sbody << OK200 << std::endl; size = OK200_Len; break;
-				case 404: sbody << NotFound404 << std::endl; size = NotFound404_Len; break;
-				default: break;
-			}
-
-			std::stringstream sresponse;
-			sresponse << "HTTP/1.1 " << std::to_string(code) << " OK" << std::endl;
-			sresponse << "Date: " << get_http_date() << std::endl;
-			sresponse << "Server: ExampleHttpd" << std::endl;
-			sresponse << "Last-Modified: " << get_http_date() << std::endl;
-			sresponse << "Content-Length: " << std::to_string(size) << std::endl;
-			sresponse << "Content-Type: text/html" << std::endl;
-			sresponse << "Connection: Close" << std::endl << std::endl;
-			sresponse << sbody.str() << std::endl;
-
-			return sresponse.str();
-		}
-
 	public:
 		WebSession() : T(), _keepalive(false) {
-
 		}
 
 		void set_keepalive() {
@@ -62,16 +31,11 @@ namespace network::web {
 				byte_vector bv;
 				T::swap_received(bv);
 
-				_http.parse_HTTP(bv.cbegin(), bv.cend());
+				byte_vector response;
 
-				LOG_DEBUG("Method: " << _http.get_method_str() << ", url: " << _http.get_url()
-						<< ", protocol: " << _http.get_protocol());
+				this->_handler->handler(bv, response);
 
-				std::string str(build_http_response(200));
-
-				bv.assign(str.begin(), str.end());
-
-				T::append_data_to_send(bv);
+				T::append_data_to_send(response);
 				auto send_res =T::begin_send();
 				send_res();
 			}

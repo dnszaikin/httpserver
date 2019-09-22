@@ -44,7 +44,7 @@ namespace network {
 			_last_client = socket;
 		};
 
-		void add_client(int socket, const sockaddr& addr) {
+		void add_client(int socket, const sockaddr& addr, std::shared_ptr<IHandler> handler) {
 			pollfd client_pollfd;
 
 			client_pollfd.fd = socket;
@@ -56,7 +56,7 @@ namespace network {
 
 			ISocket::ptr clsckt = std::make_shared<T>();
 
-			clsckt->init(ret.first, ret.second, socket);
+			clsckt->init(ret.first, ret.second, socket, handler);
 
 			_clients.emplace(socket, clsckt);
 

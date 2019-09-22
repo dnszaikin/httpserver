@@ -12,5 +12,12 @@
 
 using byte_vector = std::vector<char>;
 
+namespace network::web {
+	struct HTTP {
+		enum class Method {
+			GET=1, POST=2, NOTIMPLEMENTED=-1
+		};
+	};
+}
 
 #endif /* SRC_TYPES_H_ */
