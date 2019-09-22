@@ -9,7 +9,6 @@
 #define SRC_ABSTRACTSOCKET_H_
 
 #include "ISocket.h"
-#include "NetworkUtils.h"
 #include "Logger.h"
 
 #include <sys/ioctl.h>
@@ -21,20 +20,40 @@
 #include <errno.h>
 #include <unistd.h>
 #include <netdb.h>
+#include "CommonUtils.h"
 
 namespace network {
+
+	using namespace utils::network;
 
 	class AbstractSocket: public network::ISocket {
 	private:
 		std::string _host;
 		std::string _port;
+		std::string _name;
 		int _socket;
 		bool _is_connected;
+	protected:
+
+		void build_name() override {
+			_name = _host + ":" + _port;
+		}
+
 	public:
 		AbstractSocket(): _host{}, _port{}, _socket(-1), _is_connected(false) {};
 
-		void init(std::string_view, std::string_view) override {};
-		void init(std::string_view, std::string_view, int) override {};
+		void init(std::string_view host, std::string_view port) override {
+			set_host(host);
+			set_port(port);
+			build_name();
+		};
+
+		void init(std::string_view host, std::string_view port, int socket) override {
+			set_host(host);
+			set_port(port);
+			set_socket(socket);
+			build_name();
+		};
 
 		void shutdown() override {
 			_is_connected = false;
@@ -46,7 +65,7 @@ namespace network {
 			}
 		}
 
-		virtual void set_connected() {
+		virtual void set_connected()  {
 			_is_connected = true;
 		}
 
@@ -84,22 +103,29 @@ namespace network {
 			return _socket;
 		}
 
-		void set_port(std::string_view port) {
+		void set_port(std::string_view port)  {
 			_port = port;
 		}
 
-		void set_host(std::string_view host) {
+		void set_host(std::string_view host)  {
 			_host = host;
 		}
 
-		void set_socket(int socket) {
+		/*
+		 * return IP:PORT representation
+		 */
+		std::string_view get_name() const override {
+			return _name;
+		}
+
+		void set_socket(int socket)  {
 			_socket = socket;
 		}
 
-		callback begin_recv() override { return std::bind(&AbstractSocket::end_recv, this, false, 0); }
-		callback begin_send() override { return std::bind(&AbstractSocket::end_send, this, false, 0);}
-		void end_recv(bool, size_t) override {}
-		void end_send(bool, size_t) override {}
+//		callback begin_recv() override { return std::bind(&AbstractSocket::end_recv, this, false, 0); }
+//		callback begin_send() override { return std::bind(&AbstractSocket::end_send, this, false, 0); }
+//		void end_recv(bool, size_t) override {}
+//		void end_send(bool, size_t) override {}
 
 		void append_data_to_send(const byte_vector& data) override {}
 

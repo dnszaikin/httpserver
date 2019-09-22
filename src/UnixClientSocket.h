@@ -17,15 +17,10 @@
 
 namespace network {
 
-constexpr uint64_t READ_BUF_SIZE = 2028;
+constexpr uint64_t READ_BUF_SIZE = 2048;
 
 class UnixClientSocket: public network::AbstractSocket {
 private:
-	std::string _name;
-
-	std::string_view get_name() {
-		return _name;
-	}
 
 	byte_vector _receive_buffer;
 	byte_vector _send_buffer;
@@ -39,12 +34,18 @@ public:
 
 	} ;
 
+	/*
+	 * append data to outgoing buffer
+	 */
 	void append_data_to_send(const byte_vector& data) override {
 		std::lock_guard<std::mutex> lock(_send_buffer_mutex);
 
 		_send_buffer.insert(_send_buffer.end(), data.begin(), data.end());
 	}
 
+	/*
+	 * swap received data with user buffer
+	 */
 	void swap_received(byte_vector& data) override {
 		std::lock_guard<std::mutex> lock(_receive_buffer_mutex);
 
@@ -52,14 +53,12 @@ public:
 	}
 
 	void init(std::string_view host, std::string_view port, int socket_fd) override {
-		set_host(host);
-		set_port(port);
-		set_socket(socket_fd);
-		set_connected();
-		_name = std::string(host) + ":" + std::string(port);
+		AbstractSocket::init(host, port, socket_fd);
 
 		int opt = 1;
 		ioctl(get_socket(), FIONBIO, &opt);
+
+		set_connected();
 	}
 
 	virtual ~UnixClientSocket() {};
@@ -86,6 +85,7 @@ public:
 				if (errno != EWOULDBLOCK || errno != EAGAIN) {
 					LOG_ERROR(get_name() << ": send failed. Error: " << strerr());
 					close_connection = true;
+					complete = true;
 				}
 //				break;
 			} else if (size < send_buffer.size()){
@@ -105,6 +105,7 @@ public:
 			} else if (size == 0){
 				LOG_INFO(get_name() << ": client disconnected.");
 				close_connection = true;
+				complete = true;
 //				break;
 			}
 		}
@@ -132,12 +133,14 @@ public:
 			   if (errno != EWOULDBLOCK || errno != EAGAIN) {
 				   LOG_ERROR(get_name() << ": recv failed. Error: " << strerr());
 				   close_connection = true;
+				   complete = true;
 			   }
 //			   break;
 			}
 			//client disconnected
 			else if (size == 0) {
 				close_connection = true;
+				complete = true;
 				LOG_INFO(get_name() << ": client disconnected.");
 //				break;
 			} else if (size == READ_BUF_SIZE) {

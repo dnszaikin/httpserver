@@ -10,11 +10,12 @@
 
 #include "AbstractSocket.h"
 #include "Logger.h"
-#include "NetworkUtils.h"
-
 #include <memory>
+#include "CommonUtils.h"
 
 namespace network {
+
+	using namespace utils::network;
 
 	struct handle_deleter
 	{
@@ -31,8 +32,7 @@ namespace network {
 		UnixServerSocket(): AbstractSocket() {};
 
 		void init(std::string_view host, std::string_view port) override {
-			set_host(host);
-			set_port(port);
+			AbstractSocket::init(host, port);
 
 			struct addrinfo hints;
 			memset(&hints, 0, sizeof(hints));
@@ -88,6 +88,12 @@ namespace network {
 		virtual ~UnixServerSocket() {
 
 		};
+
+		callback begin_recv() override { return std::bind(&AbstractSocket::end_recv, this, false, 0); }
+		callback begin_send() override { return std::bind(&AbstractSocket::end_send, this, false, 0); }
+		void end_recv(bool, size_t) override {}
+		void end_send(bool, size_t) override {}
+
 	};
 }
 

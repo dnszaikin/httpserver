@@ -20,11 +20,12 @@
 
 namespace network {
 
+	template <class T>
 	class AsyncUnixServer: public AbstractServer {
 	private:
 		UnixServerSocket::ptr _socket;
 		size_t _max_clients; //maximum of allowed clients
-		PollingHelper<UnixClientSocket> _polling;
+		PollingHelper<T> _polling;
 	public:
 
 		AsyncUnixServer() : AbstractServer(), _socket(std::make_shared<UnixServerSocket>()), _max_clients(32) {
@@ -62,7 +63,7 @@ namespace network {
 
 			auto&& poll_fds = _polling.get_polling();
 
-			while (true) {
+			while (is_listening()) {
 				LOG_INFO("Waiting for client connection... Total: " << _polling.get_size() - 1);
 
 				status = poll(&poll_fds[0], poll_fds.size(), timeout);
@@ -97,6 +98,11 @@ namespace network {
 						auto&& client = _polling.get_client(it->fd);
 
 						if (it->revents & POLLIN) {
+
+//							auto recv_result = client->begin_recv();
+//							recv_result();
+//							auto send_result = client->begin_send();
+//							send_result();
 							auto async_recv = std::async(&ISocket::begin_recv, client);
 							auto async_send = std::async(&ISocket::begin_send, client);
 
@@ -128,9 +134,8 @@ namespace network {
 		};
 
 		void stop() override {
-			if (is_listening()) {
-				_socket->shutdown();
-			}
+			reset_listen();
+			_socket->shutdown();
 		};
 
 		virtual ~AsyncUnixServer() {

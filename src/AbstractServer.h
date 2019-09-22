@@ -21,6 +21,10 @@ namespace network {
 			_listen = true;
 		}
 
+		void reset_listen() {
+			_listen = false;
+		}
+
 		void set_port(std::string_view port) {
 			_port = port;
 		}

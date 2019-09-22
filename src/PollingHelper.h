@@ -13,8 +13,8 @@
 #include <sys/poll.h>
 #include <unistd.h>
 
+#include "CommonUtils.h"
 #include "ISocket.h"
-#include "NetworkUtils.h"
 
 namespace network {
 
