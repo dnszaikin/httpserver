@@ -27,6 +27,8 @@ namespace network::web {
 		data_map_t _count_commands;
 		std::mutex _count_commands_mutex;
 	public:
+		typedef std::shared_ptr<Storage> ptr;
+
 		Storage() {}
 
 		virtual ~Storage() {}
@@ -48,11 +50,11 @@ namespace network::web {
 		}
 	};
 
-	class CommandServer : IRequestHandler {
+	class CommandServer : public IRequestHandler {
 	private:
-		std::shared_ptr<Storage> _storage;
+		Storage::ptr _storage;
 	public:
-		CommandServer() {}
+		CommandServer()  {}
 
 		virtual ~CommandServer() {}
 
@@ -60,7 +62,15 @@ namespace network::web {
 			_storage = storage;
 		}
 
-		void handle_request(const HTTPRequestParser& request, byte_vector& response, int socket) override {
+		void shutdown() override {
+
+		}
+
+		bool is_keepalive() override {
+			return false;
+		}
+
+		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
 			auto vec = utils::common::split(request.get_url(), '/');
 
 			if (vec.size() != 3) {
@@ -72,23 +82,52 @@ namespace network::web {
 				DefaultServerResponses::get_response(200, false, response);
 			}
 		}
+
+		void get_data(byte_vector& data) override {}
 	};
 
-	class StatisticServer : IRequestHandler {
+	class StatisticServer : public IRequestHandler {
 	private:
-		std::shared_ptr<Storage> _storage;
+		Storage::ptr _storage;
 		Storage::data_map_t _map;
 		std::thread _thread;
 		bool _thread_started;
 		std::stringstream _output_stream;
-		int _socket;
+		std::mutex _answer_mutex;
+		std::string _answer;
+		bool _data_ready_notified;
+	    std::condition_variable _data_ready_monitor;
+
 	public:
-		StatisticServer(): _thread_started(false), _socket(-1) {
-			_thread = std::thread(&StatisticServer::run, this);
+		StatisticServer(): _thread_started(false), _answer(""), _data_ready_notified(false) {
+			LOG_INFO("Statistics session started");
 		};
+
+		bool is_keepalive() override {
+			return true;
+		}
+
+		void shutdown() override {
+			LOG_INFO("Statistics session closed");
+			_thread_started = false;
+
+			if (_thread.joinable()) {
+				_thread.join();
+			}
+		}
 
 		void set_data_source(std::shared_ptr<Storage> storage) {
 			_storage = storage;
+		}
+
+		void get_data(byte_vector& data) override {
+			std::unique_lock<std::mutex> lock(_answer_mutex);
+			//while (!_data_ready_notified) {
+				_data_ready_monitor.wait(lock);
+			//}
+
+			data.assign(_answer.begin(), _answer.end());
+			_answer.clear();
 		}
 
 		void run() {
@@ -99,63 +138,62 @@ namespace network::web {
 
 				_output_stream.clear();
 				_output_stream.str("");
+
 				for (auto&& item: _map) {
 					_output_stream << item.first << ": " << item.second << std::endl;
 				}
 
-				sleep(10);
+				_output_stream.flush();
 
+				{
+					std::unique_lock<std::mutex> lock(_answer_mutex);
+					_answer = _output_stream.str();
+				}
 
-//				if (_socket->is_connected()) {
-//					std::string answer = _output_stream.str();
-//					if (answer.empty()) {
-//						answer = "No data";
-//					}
-//
-//					byte_vector bv;
-//
-//					auto&& tmp = HTTPResponseBuilder::build_http_response(200, true, answer);
-//
-//					bv.assign(tmp.begin(), tmp.end());
-//					_socket->append_data_to_send(bv);
-//					auto res = _socket->begin_send();
-//					res();
-//				}
+				_data_ready_notified = true;
+				_data_ready_monitor.notify_all();
+
+	            std::this_thread::sleep_for(std::chrono::seconds(5));
+
+				_data_ready_notified = false;
 			}
 		}
 
-		void handle_request(const HTTPRequestParser& request, byte_vector& response, int socket) override {
-			std::string answer = _output_stream.str();
-			if (answer.empty()) {
-				answer = "No data";
+		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
+
+			if (!_thread_started) {
+				std::thread(&StatisticServer::run, this).detach();
 			}
-			auto&& tmp = HTTPResponseBuilder::build_http_response(200, true, answer);
+
+			std::string tmp;
+
+			{
+				std::unique_lock<std::mutex> lock(_answer_mutex);
+				if (!_data_ready_notified) {
+					_answer = "No data";
+				}
+				tmp = HTTPResponseBuilder::build_http_response(200, true, _answer, -1);
+			}
+
 			response.assign(tmp.begin(), tmp.end());
 		}
 
 		virtual ~StatisticServer() {
-			_thread_started = false;
-
-			if (_thread.joinable()) {
-				_thread.join();
-			}
+			shutdown();
 		}
 	};
 
 	class WebSessionHandlerFactory : public IHandlerFactory, public std::enable_shared_from_this<WebSessionHandlerFactory> {
 	private:
 		HTTPRequestParser _http_request_parser;
-		StatisticServer _statistic_srv;
-		CommandServer _command_srv;
+		Storage::ptr _storage;
 
 	public:
 		WebSessionHandlerFactory() {
-			auto storage = std::make_shared<Storage>();
-			_statistic_srv.set_data_source(storage);
-			_command_srv.set_data_source(storage);
+			_storage = std::make_shared<Storage>();
 		}
 
-		void handler(byte_vector& request, byte_vector& response, bool& keepalive, int socket) override {
+		web::IRequestHandler::ptr handler(byte_vector& request, byte_vector& response, bool& keepalive) override {
 			_http_request_parser.parse_http(request.cbegin(), request.cend());
 			keepalive = _http_request_parser.get_keepalive();
 
@@ -167,9 +205,15 @@ namespace network::web {
 			if (!vec.empty()) {
 				auto cmd = vec.at(1);
 				if (cmd == "command") {
-					_command_srv.handle_request(_http_request_parser, response, socket);
+					auto ptr = std::make_shared<CommandServer>();
+					ptr->set_data_source(_storage);
+					ptr->handle_request(_http_request_parser, response);
+					return ptr;
 				} else if (cmd == "statistics") {
-					_statistic_srv.handle_request(_http_request_parser, response, socket);
+					auto ptr = std::make_shared<StatisticServer>();
+					ptr->set_data_source(_storage);
+					ptr->handle_request(_http_request_parser, response);
+					return ptr;
 				} else {
 					keepalive = false;
 					DefaultServerResponses::get_response(404, false, response);
@@ -178,6 +222,8 @@ namespace network::web {
 				keepalive = false;
 				DefaultServerResponses::get_response(400, false, response);
 			}
+
+			return nullptr;
 		}
 
 		virtual ~WebSessionHandlerFactory() {

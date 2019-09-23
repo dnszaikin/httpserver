@@ -10,13 +10,14 @@
 
 #include <memory>
 #include "Types.h"
+#include "IRequestHandler.h"
 
 namespace network {
 
 	class IHandlerFactory {
 	public:
 		typedef std::shared_ptr<IHandlerFactory> ptr;
-		virtual void handler(byte_vector& request, byte_vector& response, bool& keepalive, int)= 0;
+		virtual web::IRequestHandler::ptr handler(byte_vector& request, byte_vector& response, bool& keepalive)= 0;
 		virtual ~IHandlerFactory() {};
 	};
 }

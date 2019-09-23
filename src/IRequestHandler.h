@@ -15,7 +15,11 @@ namespace network::web {
 
 	class IRequestHandler {
 	public:
-		virtual void handle_request(const HTTPRequestParser& request, byte_vector& response, int) = 0;
+		typedef std::shared_ptr<IRequestHandler> ptr;
+		virtual void handle_request(const HTTPRequestParser& request, byte_vector& response) = 0;
+		virtual bool is_keepalive() = 0;
+		virtual void get_data(byte_vector& bv) = 0;
+		virtual void shutdown() = 0;
 		virtual ~IRequestHandler() {};
 	};
 }

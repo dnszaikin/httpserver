@@ -79,7 +79,7 @@ public:
 
 			LOG_DEBUG(get_name() << ": sending " << send_buffer.size() << " bytes, raw [" << std::string_view(&send_buffer.data()[0], send_buffer.size()) << "]");
 
-			size = ::send(get_socket(), send_buffer.data(), send_buffer.size(), 0);
+			size = ::send(get_socket(), send_buffer.data(), send_buffer.size(), MSG_NOSIGNAL);
 
 			if (size < 0) {
 				if (errno != EWOULDBLOCK || errno != EAGAIN) {
@@ -173,6 +173,10 @@ public:
 		if (!complete) {
 			LOG_DEBUG(get_name() << ": received " << size << " bytes");
 		} else {
+			if (size == 0) {
+				return;
+			}
+
 			LOG_DEBUG(get_name() << ": received " << _receive_buffer.size() << " bytes, raw ["
 					<< std::string_view(&_receive_buffer.data()[0],	_receive_buffer.size()) << "]");
 			LOG_DEBUG(get_name() << ": receive complete!");
@@ -180,11 +184,13 @@ public:
 	}
 
 	void end_send(bool complete, size_t size) override {
+		if (size == 0) {
+			return;
+		}
+
 		if (!complete) {
-			if (size > 0) {
-		    	_send_count += size;
-				LOG_DEBUG(get_name() << ": sent " << size << " from " << _send_buffer.size() << " bytes");
-			}
+			_send_count += size;
+			LOG_DEBUG(get_name() << ": sent " << size << " from " << _send_buffer.size() << " bytes");
 		} else {
 	    	_send_count += size;
 			LOG_DEBUG(get_name() << ": send complete! Sent: " << _send_count << " bytes");

@@ -95,7 +95,7 @@ namespace network::web {
 			return sresponse.str();
 		}
 
-		static std::string build_http_response(uint16_t code, bool keepalive, std::string_view body) {
+		static std::string build_http_response(uint16_t code, bool keepalive, const std::string& body, int16_t size = 0) {
 			std::string response;
 			switch (code) {
 				case 200: response=OK200; break;
@@ -109,8 +109,9 @@ namespace network::web {
 			sresponse << "Date: " << get_http_date() << std::endl;
 			sresponse << "Server: ExampleHttpd" << std::endl;
 			sresponse << "Last-Modified: " << get_http_date() << std::endl;
-			sresponse << "Content-Length: " << std::to_string(body.length()) << std::endl;
-			//sresponse << "Content-Length: " << 1500 << std::endl;
+			if (size != -1) {
+				sresponse << "Content-Length: " << (size == 0 ? std::to_string(body.length()): std::to_string(size)) << std::endl;
+			}
 			sresponse << "Content-Type: text/html" << std::endl;
 			sresponse << "Connection: " << (keepalive ? "keep-alive" : "Close") << std::endl << std::endl;
 			sresponse << body << std::endl;

@@ -25,14 +25,14 @@ namespace network {
 		std::vector<pollfd> _poll_fds; //it is a not best idea to use map in poll reactor, in production app better to use array
 		std::unordered_map<int, ISocket::ptr> _clients; //track clients by socket
 
-		ISocket::ptr _last_client;
+		std::shared_ptr<ISocket> _last_client;
 
 	public:
 		PollingHelper() {
 
 		};
 
-		void add_client(ISocket::ptr socket) {
+		void add_client(std::shared_ptr<ISocket> socket) {
 			pollfd client_pollfd;
 
 			client_pollfd.fd = socket->get_socket();
@@ -55,7 +55,7 @@ namespace network {
 
 			auto&& ret = get_name_info(addr);
 
-			ISocket::ptr clsckt = std::make_shared<T>();
+			auto&& clsckt = std::make_shared<T>();
 
 			clsckt->init(ret.first, ret.second, socket, handler);
 
@@ -64,16 +64,17 @@ namespace network {
 			_last_client = clsckt;
 		};
 
-		const ISocket::ptr get_last_client() const {
+		const std::shared_ptr<ISocket>& get_last_client() const {
 			return _last_client;
 		}
 
-		ISocket::ptr get_client(int socket) const {
+		std::shared_ptr<ISocket> get_client(int socket) const {
 
 			auto&& it = _clients.find(socket);
 
 			if (it != _clients.end()) {
-				return it->second;
+				auto&& sp = it->second.lock();
+				return sp;
 			}
 
 			throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
@@ -88,9 +89,12 @@ namespace network {
 		}
 
 		void delete_client(std::vector<pollfd>::iterator it) {
+			LOG_INFO("Removing client... " << it->fd);
 			auto&& _it = _clients.find(it->fd);
 
 			if (_it != _clients.end()) {
+				LOG_INFO(_it->second.use_count());
+				_it->second.reset();
 				_clients.erase(_it);
 				_poll_fds.erase(it);
 			} else {

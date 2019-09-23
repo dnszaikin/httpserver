@@ -24,7 +24,7 @@ namespace network {
 	template <class T>
 	class AsyncUnixServer: public AbstractServer {
 	private:
-		UnixServerSocket::ptr _socket;
+		std::shared_ptr<UnixServerSocket> _socket;
 		size_t _max_clients; //maximum of allowed clients
 		PollingHelper<T> _polling;
 		std::shared_ptr<IHandlerFactory> _handler;
@@ -105,24 +105,12 @@ namespace network {
 
 						if (it->revents & POLLIN) {
 
-							auto recv_result = client->begin_recv();
-							auto send_result = client->begin_send();
+							auto end_recv = client->begin_recv();
+							auto end_send = client->begin_send();
 
-							std::async(recv_result);
+							std::async(end_recv);
+							std::async(end_send);
 
-							std::async(send_result);
-
-//							auto async_recv = std::async(&ISocket::begin_recv, client);
-//							auto async_send = std::async(&ISocket::begin_send, client);
-//
-//							async_recv.wait();
-//							async_send.wait();
-//
-//							auto end_recv = async_recv.get();
-//							auto end_send = async_send.get();
-//
-//							end_recv();
-//							end_send();
 						}
 
 						if (!client->is_connected()) {
