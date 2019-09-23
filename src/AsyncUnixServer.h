@@ -102,19 +102,20 @@ namespace network {
 					//it is not listening socket therefore an existing connection - do IO operations
 					} else {
 						auto&& client = _polling.get_client(it->fd);
+						if (client) {
+							if (it->revents & POLLIN) {
 
-						if (it->revents & POLLIN) {
+								auto end_recv = client->begin_recv();
+								auto end_send = client->begin_send();
 
-							auto end_recv = client->begin_recv();
-							auto end_send = client->begin_send();
+								std::async(end_recv);
+								std::async(end_send);
 
-							std::async(end_recv);
-							std::async(end_send);
+							}
 
-						}
-
-						if (!client->is_connected()) {
-							_polling.delete_client(it);
+							if (!client->is_connected()) {
+								_polling.delete_client(it);
+							}
 						}
 					}
 				}

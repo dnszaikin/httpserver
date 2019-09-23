@@ -76,7 +76,9 @@ namespace network {
 				return it->second;
 			}
 
-			throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
+			LOG_ERROR("Socket " + std::to_string(socket) + " is not found");
+			return nullptr;
+			//throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
 		}
 
 		const std::unordered_map<int, ISocket::ptr>& get_clients() const {
@@ -93,7 +95,7 @@ namespace network {
 
 			if (_it != _clients.end()) {
 
-				if (_last_client->get_socket() == it->fd) {
+				if (_last_client && _last_client->get_socket() == it->fd) {
 					_last_client.reset();
 				}
 //				while(_it->second.use_count() > 0) {

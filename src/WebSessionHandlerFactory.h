@@ -20,18 +20,50 @@
 
 namespace network::web {
 
+	constexpr int TIMEOUT = 60;
+
 	class Storage {
 	public:
 		typedef std::unordered_map<std::string, size_t> data_map_t;
 	private:
 		data_map_t _count_commands;
 		std::mutex _count_commands_mutex;
+		std::thread _thread;
+		bool _thread_run;
+		std::condition_variable _thread_sleep;
+		std::mutex _thread_sleep_mutex;
 	public:
 		typedef std::shared_ptr<Storage> ptr;
 
-		Storage() {}
+		Storage(): _thread_run(false) {
+			_thread = std::thread(&Storage::run, this);
+		}
 
-		virtual ~Storage() {}
+		void run() {
+			_thread_run = true;
+
+			while (_thread_run) {
+				{
+					std::unique_lock<std::mutex> lock(_thread_sleep_mutex);
+					_thread_sleep.wait_for(lock, std::chrono::seconds(TIMEOUT));
+				}
+
+				{
+					std::unique_lock<std::mutex> lock(_count_commands_mutex);
+					_count_commands.clear();
+				}
+			}
+
+			_thread_run = false;
+		}
+
+		virtual ~Storage() {
+			_thread_run = false;
+			_thread_sleep.notify_one();
+			if(_thread.joinable()) {
+				_thread.join();
+			}
+		}
 
 		void count(const std::string& cmd) {
 			std::unique_lock<std::mutex> lock(_count_commands_mutex);
@@ -44,9 +76,9 @@ namespace network::web {
 			}
 		}
 
-		void swap(data_map_t& map) {
+		void get_data(data_map_t& map) {
 			std::unique_lock<std::mutex> lock(_count_commands_mutex);
-			_count_commands.swap(map);
+			map = _count_commands;
 		}
 	};
 
@@ -123,44 +155,51 @@ namespace network::web {
 
 		void get_data(byte_vector& data) override {
 			std::unique_lock<std::mutex> lock(_answer_mutex);
-			while (!_data_ready_notified) {
+//			while (!_data_ready_notified) {
 				_data_ready_monitor.wait(lock);
-			}
+//			}
 
 			data.assign(_answer.begin(), _answer.end());
 			_answer.clear();
+		}
+
+		void get_last_data() {
+			_map.clear();
+			_storage->get_data(_map);
+
+			_output_stream.clear();
+			_output_stream.str("");
+
+			_output_stream << "Statistics for last " << TIMEOUT << " second(s) <br/>"  << std::endl;
+
+			for (auto&& item: _map) {
+				_output_stream << item.first << ": " << item.second << "<br/>" << std::endl;
+			}
+			_output_stream << "<br/>" << std::endl;
+			_output_stream.flush();
+
+			{
+				std::unique_lock<std::mutex> lock(_answer_mutex);
+				_answer = _output_stream.str();
+			}
 		}
 
 		void run() {
 			_thread_started = true;
 
 			while (_thread_started) {
-				_map.clear();
-				_storage->swap(_map);
 
-				_output_stream.clear();
-				_output_stream.str("");
+				get_last_data();
 
-				for (auto&& item: _map) {
-					_output_stream << item.first << ": " << item.second << std::endl;
-				}
-
-				_output_stream.flush();
-
-				{
-					std::unique_lock<std::mutex> lock(_answer_mutex);
-					_answer = _output_stream.str();
-				}
-
-				_data_ready_notified = true;
 				_data_ready_monitor.notify_one();
 
 				{
 					std::unique_lock<std::mutex> lock(_thread_sleep_mutex);
-					_thread_sleep.wait_for(lock, std::chrono::seconds(5));
+					_thread_sleep.wait_for(lock, std::chrono::seconds(TIMEOUT));
 				}
 
-				_data_ready_notified = false;
+				_data_ready_monitor.notify_one();
+
 			}
 
 			LOG_DEBUG("Statistic thread finished");
@@ -170,21 +209,23 @@ namespace network::web {
 
 		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
 
-			if (!_thread_started) {
-				_thread = std::thread(&StatisticServer::run, this);
-			}
+			get_last_data();
 
 			std::string tmp;
 
 			{
 				std::unique_lock<std::mutex> lock(_answer_mutex);
-				if (!_data_ready_notified) {
-					_answer = "No data";
+				if (_answer.empty()) {
+					_answer = "No data<br/>";
 				}
 				tmp = HTTPResponseBuilder::build_http_response(200, true, _answer, -1);
 			}
 
 			response.assign(tmp.begin(), tmp.end());
+
+			if (!_thread_started) {
+				_thread = std::thread(&StatisticServer::run, this);
+			}
 		}
 
 		virtual ~StatisticServer() {

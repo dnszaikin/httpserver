@@ -80,14 +80,6 @@ namespace network::web {
 		void end_send(bool complete, size_t size) override {
 			T::end_send(complete, size);
 
-//			if (_keepalive || (_ptr && _ptr->is_keepalive())) {
-//				return;
-//			}
-//
-//			if (complete) {
-//				T::shutdown();
-//				T::close();
-//			}
 		}
 
 		virtual ~WebSession() {
@@ -97,8 +89,6 @@ namespace network::web {
 			if (_ptr) {
 				_ptr->shutdown();
 			}
-//			T::shutdown();
-//			T::close();
 
 			if (_thread.joinable()) {
 				_thread.join();
