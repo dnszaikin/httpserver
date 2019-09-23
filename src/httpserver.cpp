@@ -12,6 +12,7 @@
 #include "AsyncUnixServer.h"
 #include "WebSession.h"
 #include "WebSessionHandlerFactory.h"
+#include "PollingHelper.h"
 
 using namespace std;
 

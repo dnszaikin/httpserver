@@ -15,7 +15,7 @@ namespace network::web {
 
 	class IRequestHandler {
 	public:
-		virtual void handle_request(const HTTPRequestParser& request, byte_vector& response) = 0;
+		virtual void handle_request(const HTTPRequestParser& request, byte_vector& response, int) = 0;
 		virtual ~IRequestHandler() {};
 	};
 }

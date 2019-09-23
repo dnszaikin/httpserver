@@ -2,19 +2,21 @@
  * IHandler.h
  *
  *  Created on: Sep 23, 2019
- *      Author: user
+ *      Author: dnszaikin
  */
 
 #ifndef SRC_IHANDLERFACTORY_H_
 #define SRC_IHANDLERFACTORY_H_
 
+#include <memory>
 #include "Types.h"
 
 namespace network {
+
 	class IHandlerFactory {
 	public:
-
-		virtual void handler(byte_vector& request, byte_vector& response)= 0;
+		typedef std::shared_ptr<IHandlerFactory> ptr;
+		virtual void handler(byte_vector& request, byte_vector& response, bool& keepalive, int)= 0;
 		virtual ~IHandlerFactory() {};
 	};
 }

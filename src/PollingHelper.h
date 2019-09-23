@@ -15,6 +15,7 @@
 
 #include "CommonUtils.h"
 #include "ISocket.h"
+#include "IHandlerFactory.h"
 
 namespace network {
 
@@ -44,7 +45,7 @@ namespace network {
 			_last_client = socket;
 		};
 
-		void add_client(int socket, const sockaddr& addr, std::shared_ptr<IHandlerFactory> handler) {
+		void add_client(int socket, const sockaddr& addr, IHandlerFactory::ptr handler) {
 			pollfd client_pollfd;
 
 			client_pollfd.fd = socket;

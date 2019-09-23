@@ -13,15 +13,24 @@
 namespace network::web {
 
 	template <class T>
-	class WebSession: public T {
+	class WebSession: public T, std::enable_shared_from_this<WebSession<T>> {
 	private:
 		bool _keepalive;
+		std::stringstream _output;
+
 	public:
 		WebSession() : T(), _keepalive(false) {
+
 		}
 
 		void set_keepalive() {
 			_keepalive = true;
+		}
+
+		void send(const byte_vector& data) {
+			T::append_data_to_send(data);
+			auto send_res =T::begin_send();
+			send_res();
 		}
 
 		void end_recv(bool complete, size_t size) override {
@@ -32,11 +41,8 @@ namespace network::web {
 
 				byte_vector response;
 
-				this->_handler->handler(bv, response);
-
-				T::append_data_to_send(response);
-				auto send_res =T::begin_send();
-				send_res();
+				this->_handler->handler(bv, response, _keepalive, this->get_socket());
+				send(response);
 			}
 		}
 

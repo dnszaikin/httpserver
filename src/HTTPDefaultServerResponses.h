@@ -109,8 +109,8 @@ namespace network::web {
 			sresponse << "Date: " << get_http_date() << std::endl;
 			sresponse << "Server: ExampleHttpd" << std::endl;
 			sresponse << "Last-Modified: " << get_http_date() << std::endl;
-			//sresponse << "Content-Length: " << std::to_string(body.length()) << std::endl;
-			sresponse << "Content-Length: " << 1500 << std::endl;
+			sresponse << "Content-Length: " << std::to_string(body.length()) << std::endl;
+			//sresponse << "Content-Length: " << 1500 << std::endl;
 			sresponse << "Content-Type: text/html" << std::endl;
 			sresponse << "Connection: " << (keepalive ? "keep-alive" : "Close") << std::endl << std::endl;
 			sresponse << body << std::endl;

@@ -21,11 +21,11 @@ namespace network {
 	{
 	protected:
 		virtual void build_name() =0;
-		std::shared_ptr<IHandlerFactory> _handler;
+		IHandlerFactory::ptr _handler;
 	public:
 		typedef std::shared_ptr<ISocket> ptr;
 		virtual void init(std::string_view, std::string_view) = 0;
-		virtual void init(std::string_view, std::string_view, int, std::shared_ptr<IHandlerFactory>) = 0;
+		virtual void init(std::string_view, std::string_view, int, IHandlerFactory::ptr) = 0;
 		virtual void shutdown() = 0;
 		virtual void close() = 0;
 		virtual std::string_view get_name() const = 0;

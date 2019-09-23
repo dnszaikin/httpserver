@@ -52,7 +52,7 @@ public:
 		_receive_buffer.swap(data);
 	}
 
-	void init(std::string_view host, std::string_view port, int socket_fd, std::shared_ptr<IHandlerFactory> handler) override {
+	void init(std::string_view host, std::string_view port, int socket_fd, IHandlerFactory::ptr handler) override {
 		AbstractSocket::init(host, port, socket_fd, handler);
 
 		int opt = 1;
