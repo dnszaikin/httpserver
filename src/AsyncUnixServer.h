@@ -27,7 +27,7 @@ namespace network {
 		UnixServerSocket::ptr _socket;
 		size_t _max_clients; //maximum of allowed clients
 		PollingHelper<T> _polling;
-		std::shared_ptr<IHandler> _handler;
+		std::shared_ptr<IHandlerFactory> _handler;
 	public:
 
 		AsyncUnixServer() : AbstractServer(), _socket(std::make_shared<UnixServerSocket>()), _max_clients(32) {
@@ -40,7 +40,7 @@ namespace network {
 			return _polling.get_clients();
 		}
 
-		void add_handler(std::shared_ptr<IHandler> handler) {
+		void set_handler_factory(std::shared_ptr<IHandlerFactory> handler) {
 			_handler = handler;
 		}
 
@@ -106,9 +106,12 @@ namespace network {
 						if (it->revents & POLLIN) {
 
 							auto recv_result = client->begin_recv();
-							recv_result();
 							auto send_result = client->begin_send();
-							send_result();
+
+							std::async(recv_result);
+
+							std::async(send_result);
+
 //							auto async_recv = std::async(&ISocket::begin_recv, client);
 //							auto async_send = std::async(&ISocket::begin_send, client);
 //

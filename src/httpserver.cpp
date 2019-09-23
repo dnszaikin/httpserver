@@ -11,7 +11,7 @@
 
 #include "AsyncUnixServer.h"
 #include "WebSession.h"
-#include "WebSessionHandler.h"
+#include "WebSessionHandlerFactory.h"
 
 using namespace std;
 
@@ -22,9 +22,9 @@ int main(int argc, char **argv) {
 
 		network::AsyncUnixServer<web> server;
 
-		auto&& wshandler = std::make_shared<network::web::WebSessionHandler>();
+		auto&& wshandler = std::make_shared<network::web::WebSessionHandlerFactory>();
 
-		server.add_handler(wshandler);
+		server.set_handler_factory(wshandler);
 
 		server.listen("8080");
 

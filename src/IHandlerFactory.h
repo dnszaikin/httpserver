@@ -5,20 +5,20 @@
  *      Author: user
  */
 
-#ifndef SRC_IHANDLER_H_
-#define SRC_IHANDLER_H_
+#ifndef SRC_IHANDLERFACTORY_H_
+#define SRC_IHANDLERFACTORY_H_
 
 #include "Types.h"
 
 namespace network {
-	class IHandler {
+	class IHandlerFactory {
 	public:
 
 		virtual void handler(byte_vector& request, byte_vector& response)= 0;
-		virtual ~IHandler() {};
+		virtual ~IHandlerFactory() {};
 	};
 }
 
 
 
-#endif /* SRC_IHANDLER_H_ */
+#endif /* SRC_IHANDLERFACTORY_H_ */

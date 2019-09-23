@@ -44,7 +44,7 @@ namespace network {
 			_last_client = socket;
 		};
 
-		void add_client(int socket, const sockaddr& addr, std::shared_ptr<IHandler> handler) {
+		void add_client(int socket, const sockaddr& addr, std::shared_ptr<IHandlerFactory> handler) {
 			pollfd client_pollfd;
 
 			client_pollfd.fd = socket;

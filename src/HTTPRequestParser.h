@@ -66,7 +66,8 @@ namespace network::web {
 
 			auto&& vec = utils::common::split(header, ' ');
 			if (vec.size() != 3) {
-				throw std::runtime_error("Unable to parse HTTP header: " + header);
+				//throw std::runtime_error("Unable to parse HTTP header: " + header);
+				LOG_ERROR("Unable to parse HTTP header: " << header);
 			} else {
 				_method_str = vec.at(0);
 				_url = vec.at(1);
@@ -83,23 +84,23 @@ namespace network::web {
 			}
 		}
 
-		HTTP::Method get_method() {
+		HTTP::Method get_method() const {
 			return _method;
 		}
 
-		std::string_view get_method_str() {
+		const std::string& get_method_str() const {
 			return _method_str;
 		}
 
-		std::string_view get_url() {
+		const std::string& get_url() const  {
 			return _url;
 		}
 
-		std::string_view get_protocol() {
+		const std::string& get_protocol() const {
 			return _protocol;
 		}
 
-		bool get_keepalive() {
+		bool get_keepalive() const {
 			return _keepalive;
 		}
 
