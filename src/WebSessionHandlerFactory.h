@@ -20,17 +20,20 @@
 
 namespace network::web {
 
-	constexpr int TIMEOUT = 60;
+	constexpr int TIMEOUT = 10;
 
 	class Storage {
 	public:
 		typedef std::unordered_map<std::string, size_t> data_map_t;
 	private:
 		data_map_t _count_commands;
+		data_map_t _count_commands_last;
 		std::mutex _count_commands_mutex;
 		std::thread _thread;
 		bool _thread_run;
 		std::condition_variable _thread_sleep;
+		std::condition_variable _user_wait;
+		std::mutex _user_wait_mutex;
 		std::mutex _thread_sleep_mutex;
 	public:
 		typedef std::shared_ptr<Storage> ptr;
@@ -48,14 +51,22 @@ namespace network::web {
 					_thread_sleep.wait_for(lock, std::chrono::seconds(TIMEOUT));
 				}
 
+//				_user_wait.notify_one();
+
 				{
 					std::unique_lock<std::mutex> lock(_count_commands_mutex);
+					_count_commands_last.swap(_count_commands);
 					_count_commands.clear();
 				}
 			}
 
 			_thread_run = false;
 		}
+
+//		void wait() {
+//			std::unique_lock<std::mutex> lock(_user_wait_mutex);
+//			_user_wait.wait(lock);
+//		}
 
 		virtual ~Storage() {
 			_thread_run = false;
@@ -77,8 +88,7 @@ namespace network::web {
 		}
 
 		void get_data(data_map_t& map) {
-			std::unique_lock<std::mutex> lock(_count_commands_mutex);
-			map = _count_commands;
+			map = _count_commands_last;
 		}
 	};
 
@@ -197,8 +207,6 @@ namespace network::web {
 					std::unique_lock<std::mutex> lock(_thread_sleep_mutex);
 					_thread_sleep.wait_for(lock, std::chrono::seconds(TIMEOUT));
 				}
-
-				_data_ready_monitor.notify_one();
 
 			}
 
