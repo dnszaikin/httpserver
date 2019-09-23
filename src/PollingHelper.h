@@ -64,17 +64,16 @@ namespace network {
 			_last_client = clsckt;
 		};
 
-		const std::shared_ptr<ISocket>& get_last_client() const {
+		ISocket::ptr get_last_client() const {
 			return _last_client;
 		}
 
-		std::shared_ptr<ISocket> get_client(int socket) const {
+		ISocket::ptr get_client(int socket) const {
 
 			auto&& it = _clients.find(socket);
 
 			if (it != _clients.end()) {
-				auto&& sp = it->second.lock();
-				return sp;
+				return it->second;
 			}
 
 			throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
@@ -93,8 +92,14 @@ namespace network {
 			auto&& _it = _clients.find(it->fd);
 
 			if (_it != _clients.end()) {
-				LOG_INFO(_it->second.use_count());
-				_it->second.reset();
+
+				if (_last_client->get_socket() == it->fd) {
+					_last_client.reset();
+				}
+//				while(_it->second.use_count() > 0) {
+					_it->second.reset();
+	//			}
+
 				_clients.erase(_it);
 				_poll_fds.erase(it);
 			} else {

@@ -97,7 +97,8 @@ namespace network::web {
 		std::string _answer;
 		bool _data_ready_notified;
 	    std::condition_variable _data_ready_monitor;
-
+	    std::condition_variable _thread_sleep;
+	    std::mutex _thread_sleep_mutex;
 	public:
 		StatisticServer(): _thread_started(false), _answer(""), _data_ready_notified(false) {
 			LOG_INFO("Statistics session started");
@@ -110,7 +111,7 @@ namespace network::web {
 		void shutdown() override {
 			LOG_INFO("Statistics session closed");
 			_thread_started = false;
-
+			_thread_sleep.notify_one();
 			if (_thread.joinable()) {
 				_thread.join();
 			}
@@ -122,9 +123,9 @@ namespace network::web {
 
 		void get_data(byte_vector& data) override {
 			std::unique_lock<std::mutex> lock(_answer_mutex);
-			//while (!_data_ready_notified) {
+			while (!_data_ready_notified) {
 				_data_ready_monitor.wait(lock);
-			//}
+			}
 
 			data.assign(_answer.begin(), _answer.end());
 			_answer.clear();
@@ -132,6 +133,7 @@ namespace network::web {
 
 		void run() {
 			_thread_started = true;
+
 			while (_thread_started) {
 				_map.clear();
 				_storage->swap(_map);
@@ -151,18 +153,25 @@ namespace network::web {
 				}
 
 				_data_ready_notified = true;
-				_data_ready_monitor.notify_all();
+				_data_ready_monitor.notify_one();
 
-	            std::this_thread::sleep_for(std::chrono::seconds(5));
+				{
+					std::unique_lock<std::mutex> lock(_thread_sleep_mutex);
+					_thread_sleep.wait_for(lock, std::chrono::seconds(5));
+				}
 
 				_data_ready_notified = false;
 			}
+
+			LOG_DEBUG("Statistic thread finished");
+			_data_ready_monitor.notify_one();
+			_thread_started = false;
 		}
 
 		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
 
 			if (!_thread_started) {
-				std::thread(&StatisticServer::run, this).detach();
+				_thread = std::thread(&StatisticServer::run, this);
 			}
 
 			std::string tmp;

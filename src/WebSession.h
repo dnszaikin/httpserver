@@ -42,6 +42,7 @@ namespace network::web {
 				std::this_thread::yield();
 			}
 			_thread_run = false;
+			LOG_DEBUG("Statistic socket thread finished");
 		}
 
 		void send(const byte_vector& data) {
@@ -70,7 +71,7 @@ namespace network::web {
 
 				if (_ptr) {
 					if (_ptr->is_keepalive()) {
-						std::thread(&WebSession::run, this).detach();
+						_thread = std::thread(&WebSession::run, this);
 					}
 				}
 			}
@@ -96,11 +97,12 @@ namespace network::web {
 			if (_ptr) {
 				_ptr->shutdown();
 			}
-//			if (_thread.joinable()) {
-////				T::shutdown();
-////				T::close();
-//				_thread.join();
-//			}
+//			T::shutdown();
+//			T::close();
+
+			if (_thread.joinable()) {
+				_thread.join();
+			}
 		}
 	};
 }

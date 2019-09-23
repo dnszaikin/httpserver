@@ -23,7 +23,7 @@ namespace network {
 		virtual void build_name() =0;
 		IHandlerFactory::ptr _handler;
 	public:
-		typedef std::weak_ptr<ISocket> ptr;
+		typedef std::shared_ptr<ISocket> ptr;
 		virtual void init(std::string_view, std::string_view) = 0;
 		virtual void init(std::string_view, std::string_view, int, IHandlerFactory::ptr) = 0;
 		virtual void shutdown() = 0;
