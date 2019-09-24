@@ -15,6 +15,10 @@
 #include "ISocket.h"
 #include "IHandlerFactory.h"
 
+#ifndef _WIN32
+#include <sys/poll.h>
+#endif
+
 namespace network {
 
 	template <class T>
@@ -54,7 +58,7 @@ namespace network {
 
 			_poll_fds.emplace_back(client_pollfd);
 
-			auto&& ret = get_name_info(addr);
+			auto&& ret = utils::network::get_name_info(addr);
 
 			auto&& clsckt = std::make_shared<T>();
 
