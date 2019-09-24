@@ -29,8 +29,6 @@ namespace network::web {
 		"</html>"
 	};
 
-	constexpr size_t NotFound404Data_Len = std::strlen(NotFound404Data);
-
 	constexpr char OK200[] {"200 OK"};
 
 	constexpr char OK200Data[] {
@@ -40,8 +38,6 @@ namespace network::web {
 			"</body>"
 		"</html>"
 	};
-
-	constexpr size_t OK200Data_Len = std::strlen(OK200Data);
 
 	constexpr char BadRequest400[] {"400 Bad Request"};
 
@@ -57,7 +53,15 @@ namespace network::web {
 		"</html>"
 	};
 
+#ifndef _WIN32
+	constexpr size_t NotFound404Data_Len = std::strlen(NotFound404Data);
+	constexpr size_t OK200Data_Len = std::strlen(OK200Data);
 	constexpr size_t BadRequest400Data_Len = std::strlen(BadRequest400Data);
+#else 
+	static size_t NotFound404Data_Len = std::strlen(NotFound404Data);
+	static size_t OK200Data_Len = std::strlen(OK200Data);
+	static size_t BadRequest400Data_Len = std::strlen(BadRequest400Data);
+#endif
 
 	constexpr char Protocol[] {"HTTP/1.0"};
 
@@ -158,7 +162,6 @@ namespace network::web {
 			str.assign(HTTPResponseBuilder::build_http_response(400, true));
 
 			_response400_keepalive.assign(str.begin(), str.end());
-
 		}
 
 	private:

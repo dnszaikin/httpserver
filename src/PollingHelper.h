@@ -10,8 +10,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <sys/poll.h>
-#include <unistd.h>
 
 #include "CommonUtils.h"
 #include "ISocket.h"
@@ -21,13 +19,16 @@ namespace network {
 
 	template <class T>
 	class PollingHelper {
+	public:
+		typedef std::unordered_map<socket_t, ISocket::ptr> clients_map_t;
 	private:
 		std::vector<pollfd> _poll_fds; //it is a not best idea to use map in poll reactor, in production app better to use array
-		std::unordered_map<int, ISocket::ptr> _clients; //track clients by socket
+		clients_map_t _clients; //track clients by socket
 
 		std::shared_ptr<ISocket> _last_client;
 
 	public:
+
 		PollingHelper() {
 
 		};
@@ -45,7 +46,7 @@ namespace network {
 			_last_client = socket;
 		};
 
-		void add_client(int socket, const sockaddr& addr, IHandlerFactory::ptr handler) {
+		void add_client(socket_t socket, const sockaddr& addr, IHandlerFactory::ptr handler) {
 			pollfd client_pollfd;
 
 			client_pollfd.fd = socket;
@@ -68,7 +69,7 @@ namespace network {
 			return _last_client;
 		}
 
-		ISocket::ptr get_client(int socket) const {
+		ISocket::ptr get_client(socket_t socket) const {
 
 			auto&& it = _clients.find(socket);
 
@@ -81,7 +82,7 @@ namespace network {
 			//throw std::runtime_error("Socket " + std::to_string(socket) + " is not found");
 		}
 
-		const std::unordered_map<int, ISocket::ptr>& get_clients() const {
+		const clients_map_t& get_clients() const {
 			return _clients;
 		}
 

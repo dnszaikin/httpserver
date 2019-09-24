@@ -18,18 +18,32 @@
 
 
 #ifndef _WIN32
+#include <netdb.h>
+#else
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#endif
+
 #include <string.h>
 #include <errno.h>
-#include <netdb.h>
-#endif
 
 #include "Logger.h"
 
 namespace utils::network {
 
-#ifndef _WIN32
+	/*
+	 * returns string representation of errmo macros
+	 */
 	inline std::string strerr() {
-		return std::string(strerror(errno));
+
+#ifndef _WIN32
+		return std::string(strerror(errno) + std::string("(" + std::to_string(errno) + ")"));
+#else 
+		char errmsg[256];
+		int err = WSAGetLastError();
+		DWORD len = FormatMessageA(FORMAT_MESSAGE_ARGUMENT_ARRAY | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, err, 0, errmsg, 255, NULL);
+		return std::string(errmsg + std::string("(" + std::to_string(err) + ")"));		
+#endif
 	}
 
 	/*
@@ -41,13 +55,12 @@ namespace utils::network {
 		char port[128];
 		if(::getnameinfo(&address, sizeof(sockaddr), hostname, sizeof(hostname),
 				port, sizeof(port), NI_NUMERICHOST | NI_NUMERICSERV) != 0){
-			LOG_ERROR("Failed to translate socket to client address. Error: " << strerr());
+			//LOG_ERROR("Failed to translate socket to client address. Error: " << strerr());
+			throw std::runtime_error("Failed to translate socket to client address. Error: " + strerr());
 		}
 
 		return std::make_pair<std::string_view, std::string_view>(hostname, port);
 	}
-#endif
-
 
 	inline std::string get_http_date() {
 	    auto now = std::chrono::system_clock::now();

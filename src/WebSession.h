@@ -9,6 +9,7 @@
 #define SRC_WEBSESSION_H_
 
 #include "HTTPRequestParser.h"
+#include "IRequestHandler.h"
 
 namespace network::web {
 
@@ -17,7 +18,7 @@ namespace network::web {
 	private:
 		bool _keepalive;
 		std::stringstream _output;
-		web::IRequestHandler::ptr _ptr;
+		network::web::IRequestHandler::ptr _ptr;
 		std::thread _thread;
 		bool _thread_run;
 	public:
@@ -73,6 +74,13 @@ namespace network::web {
 					if (_ptr->is_keepalive()) {
 						_thread = std::thread(&WebSession::run, this);
 					}
+					else {
+						//due different behevior of windows socket
+#ifdef _WIN32 
+						T::shutdown();
+						//T::close();
+#endif
+					}					
 				}
 			}
 		}

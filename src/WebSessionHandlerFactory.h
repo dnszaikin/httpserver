@@ -1,5 +1,5 @@
 /*
- * WebSessionManager.h
+ * WebSessionHandlerFactory.h
  *
  *  Created on: Sep 22, 2019
  *      Author: dnszaikin
@@ -20,7 +20,7 @@
 
 namespace network::web {
 
-	constexpr int TIMEOUT = 10;
+	constexpr int TIMEOUT = 60;
 
 	class Storage {
 	public:

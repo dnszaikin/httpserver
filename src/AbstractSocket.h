@@ -11,16 +11,27 @@
 #include "ISocket.h"
 #include "Logger.h"
 
+#ifndef _WIN32
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/un.h>
 #include <netinet/in.h>
-#include <errno.h>
 #include <unistd.h>
 #include <netdb.h>
+#else
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#endif // !_WIN32
+
+
 #include "CommonUtils.h"
+
+#include <errno.h>
 
 namespace network {
 
@@ -31,7 +42,7 @@ namespace network {
 		std::string _host;
 		std::string _port;
 		std::string _name;
-		int _socket;
+		socket_t _socket;
 		bool _is_connected;
 	protected:
 
@@ -40,7 +51,8 @@ namespace network {
 		}
 
 	public:
-		AbstractSocket(): _host{}, _port{}, _socket(-1), _is_connected(false) {};
+		AbstractSocket(): _host{}, _port{}, _socket(-1), _is_connected(false) {
+		};
 
 		void init(std::string_view host, std::string_view port) override {
 			set_host(host);
@@ -48,7 +60,7 @@ namespace network {
 			build_name();
 		};
 
-		void init(std::string_view host, std::string_view port, int socket, IHandlerFactory::ptr handler) override {
+		void init(std::string_view host, std::string_view port, socket_t socket, IHandlerFactory::ptr handler) override {
 			set_host(host);
 			set_port(port);
 			set_socket(socket);
@@ -58,8 +70,12 @@ namespace network {
 
 		void shutdown() override {
 			_is_connected = false;
-
+#ifndef _WIN32
 			int status = ::shutdown(get_socket(), SHUT_RDWR);
+#else
+			int status = ::shutdown(get_socket(), SD_BOTH);
+#endif // !_WIN32
+
 
 			if (status < 0) {
 				LOG_ERROR("Unable to shutdown socket. Error: " + strerr());
@@ -76,8 +92,11 @@ namespace network {
 
 		void close() override {
 			_is_connected = false;
+#ifndef _WIN32
 			int status = ::close(get_socket());
-
+#else
+			int status = ::closesocket(get_socket());
+#endif
 			if (status < 0) {
 				LOG_ERROR("Failed to close socket. Error: " << strerr());
 			}
@@ -100,7 +119,7 @@ namespace network {
 		/*
 		 * returns socket descriptor
 		 */
-		int get_socket() const override {
+		socket_t get_socket() const override {
 			return _socket;
 		}
 
@@ -119,7 +138,7 @@ namespace network {
 			return _name;
 		}
 
-		void set_socket(int socket)  {
+		void set_socket(socket_t socket)  {
 			_socket = socket;
 		}
 
@@ -132,7 +151,8 @@ namespace network {
 
 		void swap_received(byte_vector& data) override {}
 
-		virtual ~AbstractSocket() { };
+		virtual ~AbstractSocket() { 
+		};
 	};
 }
 

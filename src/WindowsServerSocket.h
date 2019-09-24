@@ -1,13 +1,15 @@
-/*
- * UnixServerSocket.h
- *
- *  Created on: Sep 20, 2019
- *      Author: dnszaikin
- */
+#pragma once
 
-#ifndef SRC_UNIXSERVERSOCKET_H_
-#define SRC_UNIXSERVERSOCKET_H_
-#ifndef _WIN32
+/*
+* WindowsServerSocket.h
+*
+*  Created on: Sep 24, 2019
+*      Author: dnszaikin
+*/
+
+#ifndef SRC_WINDOWSSERVERSOCKET_H_
+#define SRC_WINDOWSSERVERSOCKET_H_
+#ifdef _WIN32
 #include "AbstractSocket.h"
 #include "Logger.h"
 #include <memory>
@@ -25,11 +27,12 @@ namespace network {
 		}
 	};
 
-	class UnixServerSocket: public AbstractSocket {
+	class WindowsServerSocket : public AbstractSocket {
 	private:
 		std::unique_ptr<addrinfo, handle_deleter> _addr;
 	public:
-		UnixServerSocket(): AbstractSocket() {};
+		WindowsServerSocket() : AbstractSocket() {
+		};
 
 		void init(std::string_view host, std::string_view port) override {
 			AbstractSocket::init(host, port);
@@ -37,7 +40,7 @@ namespace network {
 			struct addrinfo hints;
 			memset(&hints, 0, sizeof(hints));
 
-			hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6
+			hints.ai_family = AF_INET; // AF_INET or AF_INET6
 			hints.ai_socktype = SOCK_STREAM; // TCP Socket stream
 			hints.ai_flags = AI_PASSIVE;
 
@@ -51,7 +54,7 @@ namespace network {
 				throw std::runtime_error("Unable to translate service name to socket address. Error: " + std::string(gai_strerror(status)));
 			}
 
-			int socket_fd = socket(_addr->ai_family, _addr->ai_socktype, _addr->ai_protocol);
+			socket_t socket_fd = socket(_addr->ai_family, _addr->ai_socktype, _addr->ai_protocol);
 
 			if (socket_fd < 0) {
 				throw std::runtime_error("Unable to create socket. Error: " + strerr());
@@ -60,17 +63,19 @@ namespace network {
 			set_socket(socket_fd);
 
 			//enable address reuse
-			int enable = 1;
-			status = setsockopt(get_socket(), SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+			char enable = '1';
+			status = setsockopt(get_socket(), SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(enable));
+
 
 			if (status < 0) {
 				throw std::runtime_error("Setting reuse address failed. Error: " + strerr());
 			}
 
-			int opt = 1;
+			u_long opt = 1;
 
 			//enable non-blocking IO, all client sockets inherits this state from listening socket
-			status = ioctl(get_socket(), FIONBIO, &opt);
+			status = ioctlsocket(get_socket(), FIONBIO, &opt);
+
 
 			if (status < 0) {
 				throw std::runtime_error("Failed to set non-blocking mode. Error: " + strerr());
@@ -85,7 +90,7 @@ namespace network {
 			set_connected();
 		}
 
-		virtual ~UnixServerSocket() {
+		virtual ~WindowsServerSocket() {
 
 		};
 
@@ -97,5 +102,5 @@ namespace network {
 	};
 }
 
-#endif /* SRC_UNIXSERVERSOCKET_H_ */
+#endif /* SRC_WINDOWSSERVERSOCKET_H_ */
 #endif //WIN32
