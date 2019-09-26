@@ -5,8 +5,8 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_ISOCKET_H_
-#define SRC_ISOCKET_H_
+#ifndef POLLHTTPD_ISOCKET_H_
+#define POLLHTTPD_ISOCKET_H_
 
 #include <string>
 #include <memory>
@@ -20,7 +20,7 @@
 #else
 #define socket_t SOCKET
 #endif
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 	typedef std::function<void()> callback;
 
 	class ISocket
@@ -50,4 +50,4 @@ namespace network {
 }
 
 
-#endif /* SRC_ISOCKET_H_ */
+#endif /* POLLHTTPD_ISOCKET_H_ */

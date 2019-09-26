@@ -12,6 +12,6 @@ if (WIN32)
 	set(LINKLIBS "")
 endif()
 
-add_executable(httpserver src/httpserver.cpp)
+add_executable(httpserver examples/ComplexServerExample.cpp)
 
 target_link_libraries(httpserver ${LINKLIBS})

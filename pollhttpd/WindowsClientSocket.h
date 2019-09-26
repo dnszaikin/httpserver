@@ -19,11 +19,11 @@
 #include <string>
 #include <string_view>
 
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 
 	constexpr uint64_t READ_BUF_SIZE = 2048;
 
-	class WindowsClientSocket : public network::AbstractSocket {
+	class WindowsClientSocket : public AbstractSocket {
 	private:
 
 		byte_vector _receive_buffer;
@@ -86,7 +86,7 @@ namespace network {
 
 				if (size < 0) {
 					if (errno != EWOULDBLOCK || errno != EAGAIN) {
-						LOG_ERROR(get_name() << ": send failed. Error: " << strerr());
+						LOG_ERROR(get_name() << ": send failed. Error: " << utils::network::strerr());
 						close_connection = true;
 						complete = true;
 					}
@@ -138,7 +138,7 @@ namespace network {
 				//error when read
 				if (size < 0) {
 					if (errno != EWOULDBLOCK || errno != EAGAIN) {
-						LOG_ERROR(get_name() << ": recv failed. Error: " << strerr());
+						LOG_ERROR(get_name() << ": recv failed. Error: " << utils::network::strerr());
 						close_connection = true;
 						complete = true;
 					}

@@ -5,15 +5,16 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_HTTPDEFAULTSERVERRESPONSES_H_
-#define SRC_HTTPDEFAULTSERVERRESPONSES_H_
+#ifndef POLLHTTPD_HTTPDEFAULTSERVERRESPONSES_H_
+#define POLLHTTPD_HTTPDEFAULTSERVERRESPONSES_H_
 
 #include <string>
 #include <cstring>
+
 #include "CommonUtils.h"
 #include "Types.h"
 
-namespace network::web {
+namespace dnszaikin::pollhttpd::network::web {
 
 	constexpr char NotFound404[] {"404 Not Found"};
 
@@ -65,8 +66,6 @@ namespace network::web {
 
 	constexpr char Protocol[] {"HTTP/1.0"};
 
-	using namespace utils::network;
-
 	class HTTPResponseBuilder {
 	public:
 
@@ -88,9 +87,9 @@ namespace network::web {
 
 			std::stringstream sresponse;
 			sresponse << Protocol << " " << response << std::endl;
-			sresponse << "Date: " << get_http_date() << std::endl;
+			sresponse << "Date: " << utils::network::get_http_date() << std::endl;
 			sresponse << "Server: ExampleHttpd" << std::endl;
-			sresponse << "Last-Modified: " << get_http_date() << std::endl;
+			sresponse << "Last-Modified: " << utils::network::get_http_date() << std::endl;
 			sresponse << "Content-Length: " << std::to_string(size) << std::endl;
 			sresponse << "Content-Type: text/html" << std::endl;
 			sresponse << "Connection: " << (keepalive ? "keep-alive" : "Close") << std::endl << std::endl;
@@ -110,9 +109,9 @@ namespace network::web {
 
 			std::stringstream sresponse;
 			sresponse << Protocol << " " << response << std::endl;
-			sresponse << "Date: " << get_http_date() << std::endl;
+			sresponse << "Date: " << utils::network::get_http_date() << std::endl;
 			sresponse << "Server: ExampleHttpd" << std::endl;
-			sresponse << "Last-Modified: " << get_http_date() << std::endl;
+			sresponse << "Last-Modified: " << utils::network::get_http_date() << std::endl;
 			if (size != -1) {
 				sresponse << "Content-Length: " << (size == 0 ? std::to_string(body.length()): std::to_string(size)) << std::endl;
 			}
@@ -211,4 +210,4 @@ namespace network::web {
 
 
 
-#endif /* SRC_HTTPDEFAULTSERVERRESPONSES_H_ */
+#endif /* POLLHTTPD_HTTPDEFAULTSERVERRESPONSES_H_ */

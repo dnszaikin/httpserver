@@ -5,14 +5,14 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_TYPES_H_
-#define SRC_TYPES_H_
+#ifndef POLLHTTPD_TYPES_H_
+#define POLLHTTPD_TYPES_H_
 
 #include <vector>
 
 using byte_vector = std::vector<char>;
 
-namespace network::web {
+namespace dnszaikin::pollhttpd::network::web {
 	struct HTTP {
 		enum class Method {
 			GET=1, POST=2, NOTIMPLEMENTED=-1
@@ -20,4 +20,4 @@ namespace network::web {
 	};
 }
 
-#endif /* SRC_TYPES_H_ */
+#endif /* POLLHTTPD_TYPES_H_ */

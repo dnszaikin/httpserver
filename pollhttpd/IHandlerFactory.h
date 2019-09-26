@@ -5,14 +5,15 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_IHANDLERFACTORY_H_
-#define SRC_IHANDLERFACTORY_H_
+#ifndef POLLHTTPD_IHANDLERFACTORY_H_
+#define POLLHTTPD_IHANDLERFACTORY_H_
 
 #include <memory>
-#include "Types.h"
-#include "IRequestHandler.h"
 
-namespace network {
+#include "IRequestHandler.h"
+#include "Types.h"
+
+namespace dnszaikin::pollhttpd::network {
 
 	class IHandlerFactory {
 	public:
@@ -24,4 +25,4 @@ namespace network {
 
 
 
-#endif /* SRC_IHANDLERFACTORY_H_ */
+#endif /* POLLHTTPD_IHANDLERFACTORY_H_ */

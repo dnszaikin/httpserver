@@ -5,12 +5,12 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_ISERVER_H_
-#define SRC_ISERVER_H_
+#ifndef POLLHTTPD_ISERVER_H_
+#define POLLHTTPD_ISERVER_H_
 
 #include <string>
 
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 	class IServer
 	{
 	public:
@@ -23,4 +23,4 @@ namespace network {
 }
 
 
-#endif /* SRC_ISERVER_H_ */
+#endif /* POLLHTTPD_ISERVER_H_ */

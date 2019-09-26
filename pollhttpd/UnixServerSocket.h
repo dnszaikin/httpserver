@@ -1,23 +1,20 @@
-#pragma once
-
 /*
-* WindowsServerSocket.h
-*
-*  Created on: Sep 24, 2019
-*      Author: dnszaikin
-*/
+ * UnixServerSocket.h
+ *
+ *  Created on: Sep 20, 2019
+ *      Author: dnszaikin
+ */
 
-#ifndef SRC_WINDOWSSERVERSOCKET_H_
-#define SRC_WINDOWSSERVERSOCKET_H_
-#ifdef _WIN32
+#ifndef POLLHTTPD_UNIXSERVERSOCKET_H_
+#define POLLHTTPD_UNIXSERVERSOCKET_H_
+
+#ifndef _WIN32
 #include "AbstractSocket.h"
 #include "Logger.h"
 #include <memory>
 #include "CommonUtils.h"
 
-namespace network {
-
-	using namespace utils::network;
+namespace dnszaikin::pollhttpd::network {
 
 	struct handle_deleter
 	{
@@ -27,12 +24,11 @@ namespace network {
 		}
 	};
 
-	class WindowsServerSocket : public AbstractSocket {
+	class UnixServerSocket: public AbstractSocket {
 	private:
 		std::unique_ptr<addrinfo, handle_deleter> _addr;
 	public:
-		WindowsServerSocket() : AbstractSocket() {
-		};
+		UnixServerSocket(): AbstractSocket() {};
 
 		void init(std::string_view host, std::string_view port) override {
 			AbstractSocket::init(host, port);
@@ -40,7 +36,7 @@ namespace network {
 			struct addrinfo hints;
 			memset(&hints, 0, sizeof(hints));
 
-			hints.ai_family = AF_INET; // AF_INET or AF_INET6
+			hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6
 			hints.ai_socktype = SOCK_STREAM; // TCP Socket stream
 			hints.ai_flags = AI_PASSIVE;
 
@@ -54,43 +50,41 @@ namespace network {
 				throw std::runtime_error("Unable to translate service name to socket address. Error: " + std::string(gai_strerror(status)));
 			}
 
-			socket_t socket_fd = socket(_addr->ai_family, _addr->ai_socktype, _addr->ai_protocol);
+			int socket_fd = socket(_addr->ai_family, _addr->ai_socktype, _addr->ai_protocol);
 
 			if (socket_fd < 0) {
-				throw std::runtime_error("Unable to create socket. Error: " + strerr());
+				throw std::runtime_error("Unable to create socket. Error: " + utils::network::strerr());
 			}
 
 			set_socket(socket_fd);
 
 			//enable address reuse
-			char enable = '1';
-			status = setsockopt(get_socket(), SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(enable));
-
+			int enable = 1;
+			status = setsockopt(get_socket(), SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
 			if (status < 0) {
-				throw std::runtime_error("Setting reuse address failed. Error: " + strerr());
+				throw std::runtime_error("Setting reuse address failed. Error: " + utils::network::strerr());
 			}
 
-			u_long opt = 1;
+			int opt = 1;
 
 			//enable non-blocking IO, all client sockets inherits this state from listening socket
-			status = ioctlsocket(get_socket(), FIONBIO, &opt);
-
+			status = ioctl(get_socket(), FIONBIO, &opt);
 
 			if (status < 0) {
-				throw std::runtime_error("Failed to set non-blocking mode. Error: " + strerr());
+				throw std::runtime_error("Failed to set non-blocking mode. Error: " + utils::network::strerr());
 			}
 
 			status = bind(get_socket(), _addr->ai_addr, _addr->ai_addrlen);
 
 			if (status < 0) {
-				throw std::runtime_error("Failed to bind socket. Error: " + strerr());
+				throw std::runtime_error("Failed to bind socket. Error: " + utils::network::strerr());
 			}
 
 			set_connected();
 		}
 
-		virtual ~WindowsServerSocket() {
+		virtual ~UnixServerSocket() {
 
 		};
 
@@ -102,5 +96,5 @@ namespace network {
 	};
 }
 
-#endif /* SRC_WINDOWSSERVERSOCKET_H_ */
+#endif /* SRC_UNIXSERVERSOCKET_H_ */
 #endif //WIN32

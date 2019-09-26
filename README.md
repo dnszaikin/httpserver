@@ -1,2 +1,3 @@
 # httpserver
-Async HTTP Server, using poll method. Supports windows/unix.
+Simple async HTTP Server, using poll method. Supports windows/unix. Headers only.
+See examples folder.

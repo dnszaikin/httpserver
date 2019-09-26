@@ -1,40 +1,44 @@
+#pragma once
 /*
- * AsyncUnixServer.h
- *
- *  Created on: Sep 19, 2019
- *      Author: dnszaikin
- */
+* AsyncWindowsServer.h
+*
+*  Created on: Sep 24, 2019
+*      Author: dnszaikin
+*/
 
-#ifndef _WIN32
-#ifndef SRC_ASYNCUNIXSOCKET_H_
-#define SRC_ASYNCUNIXSOCKET_H_
+#ifdef _WIN32
+#ifndef SRC_ASYNCWINDOWSSOCKET_H_
+#define SRC_ASYNCWINDOWSSOCKET_H_
 
 #include <future>
 #include <functional>
 
 #include "AbstractServer.h"
-#include "UnixServerSocket.h"
-#include "UnixClientSocket.h"
+#include "WindowsServerSocket.h"
+#include "WindowsClientSocket.h"
 #include "Logger.h"
 #include "PollingHelper.h"
 #include "Types.h"
+//#include <sys/poll.h>
 
-namespace network {
+#include <io.h>
+
+namespace dnszaikin::pollhttpd::network {
 
 	template <class T>
-	class AsyncUnixServer: public AbstractServer {
+	class AsyncWindowsServer : public AbstractServer {
 	private:
-		std::shared_ptr<UnixServerSocket> _socket;
+		std::shared_ptr<WindowsServerSocket> _socket;
 		size_t _max_clients; //maximum of allowed clients
 		PollingHelper<T> _polling;
 		std::shared_ptr<IHandlerFactory> _handler;
 	public:
 
-		AsyncUnixServer() : AbstractServer(), _socket(std::make_shared<UnixServerSocket>()), _max_clients(32) {
+		AsyncWindowsServer() : AbstractServer(), _socket(std::make_shared<WindowsServerSocket>()), _max_clients(32) {
 
 		};
 
-		int get_socket() override { return _socket->get_socket();}
+		int get_socket() override { return _socket->get_socket(); }
 
 		const std::unordered_map<int, ISocket::ptr>& get_clients() {
 			return _polling.get_clients();
@@ -52,7 +56,7 @@ namespace network {
 			int status = ::listen(_socket->get_socket(), _max_clients);
 
 			if (status < 0) {
-				throw std::runtime_error("Unable to start listening socket. Error: " + strerr());
+				throw std::runtime_error("Unable to start listening socket. Error: " + utils::network::strerr());
 			}
 
 			set_listen();
@@ -72,18 +76,18 @@ namespace network {
 			while (is_listening()) {
 				LOG_INFO("Waiting for client connection... Total: " << _polling.get_size() - 1);
 
-				status = poll(&poll_fds[0], poll_fds.size(), timeout);
+				status = WSAPoll(&poll_fds[0], poll_fds.size(), timeout);
 
 				if (status < 0) {
-					LOG_ERROR("Poll failed. Error: " << strerror(errno));
+					LOG_ERROR("Poll failed. Error: " << utils::network::strerr());
 					break;
 				}
 
 				std::vector<pollfd>::iterator it;
 				auto&& end = poll_fds.end();
-		        for (it = poll_fds.begin(); it != end; ++it) {
+				for (it = poll_fds.begin(); it != end; ++it) {
 					//accept connection on listening socket
-					if(it->fd == _socket->get_socket()) {
+					if (it->fd == _socket->get_socket()) {
 						if (it->revents & POLLIN) {
 							client_len = sizeof(client_address);
 							client_sockfd = accept(_socket->get_socket(), &client_address, &client_len);
@@ -91,16 +95,18 @@ namespace network {
 							if (_max_clients <= _polling.get_size() - 1) {
 								LOG_INFO("Maximum number of allowed clients is reached. Max: " << _max_clients);
 								::close(client_sockfd);
-							} else {
+							}
+							else {
 								_polling.add_client(client_sockfd, client_address, _handler);
 
-								auto&& ucs =  _polling.get_last_client();
+								auto&& ucs = _polling.get_last_client();
 
 								LOG_INFO(ucs->get_host() << ":" << ucs->get_port() << " connected, socket: " << ucs->get_socket());
 							}
 						}
-					//it is not listening socket therefore an existing connection - do IO operations
-					} else {
+						//it is not listening socket therefore an existing connection - do IO operations
+					}
+					else {
 						auto&& client = _polling.get_client(it->fd);
 						if (client) {
 							if (it->revents & POLLIN) {
@@ -127,10 +133,11 @@ namespace network {
 			_socket->shutdown();
 		};
 
-		virtual ~AsyncUnixServer() {
+		virtual ~AsyncWindowsServer() {
 			try {
 				stop();
-			} catch (const std::exception& e) {
+			}
+			catch (const std::exception& e) {
 				LOG_ERROR(e.what());
 			}
 
@@ -140,5 +147,5 @@ namespace network {
 
 }
 
-#endif /* SRC_ASYNCUNIXSOCKET_H_ */
+#endif /* SRC_ASYNCWINDOWSSOCKET_H_ */
 #endif //_WIN32

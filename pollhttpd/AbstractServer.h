@@ -5,12 +5,12 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_ABSTRACTSERVER_H_
-#define SRC_ABSTRACTSERVER_H_
+#ifndef POLLHTTPD_ABSTRACTSERVER_H_
+#define POLLHTTPD_ABSTRACTSERVER_H_
 
 #include "IServer.h"
 
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 	class AbstractServer: public IServer {
 	private:
 		bool _listen;
@@ -55,4 +55,4 @@ namespace network {
 	};
 }
 
-#endif /* SRC_ABSTRACTSERVER_H_ */
+#endif /* POLLHTTPD_ABSTRACTSERVER_H_ */

@@ -5,8 +5,8 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_ABSTRACTSOCKET_H_
-#define SRC_ABSTRACTSOCKET_H_
+#ifndef POLLHTTPD_ABSTRACTSOCKET_H_
+#define POLLHTTPD_ABSTRACTSOCKET_H_
 
 #include "ISocket.h"
 #include "Logger.h"
@@ -33,11 +33,9 @@
 
 #include <errno.h>
 
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 
-	using namespace utils::network;
-
-	class AbstractSocket: public network::ISocket {
+	class AbstractSocket: public ISocket {
 	private:
 		std::string _host;
 		std::string _port;
@@ -78,7 +76,7 @@ namespace network {
 
 
 			if (status < 0) {
-				LOG_ERROR("Unable to shutdown socket. Error: " + strerr());
+				LOG_ERROR("Unable to shutdown socket. Error: " + utils::network::strerr());
 			}
 		}
 
@@ -98,7 +96,7 @@ namespace network {
 			int status = ::closesocket(get_socket());
 #endif
 			if (status < 0) {
-				LOG_ERROR("Failed to close socket. Error: " << strerr());
+				LOG_ERROR("Failed to close socket. Error: " << utils::network::strerr());
 			}
 		}
 
@@ -156,4 +154,4 @@ namespace network {
 	};
 }
 
-#endif /* SRC_ABSTRACTSOCKET_H_ */
+#endif /* POLLHTTPD_ABSTRACTSOCKET_H_ */

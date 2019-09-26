@@ -12,13 +12,16 @@
 #include <unordered_map>
 #include <mutex>
 
-#include "IHandlerFactory.h"
-#include "Types.h"
-#include "HTTPDefaultServerResponses.h"
-#include "IRequestHandler.h"
-#include "PollingHelper.h"
+#include "../pollhttpd/IRequestHandler.h"
+#include "../pollhttpd/Types.h"
+#include "../pollhttpd/HTTPDefaultServerResponses.h"
+#include "../pollhttpd/IHandlerFactory.h"
+#include "../pollhttpd/PollingHelper.h"
 
-namespace network::web {
+namespace examples {
+
+	using namespace dnszaikin::pollhttpd;
+	using namespace dnszaikin::pollhttpd::network;
 
 	constexpr int TIMEOUT = 60;
 
@@ -92,7 +95,7 @@ namespace network::web {
 		}
 	};
 
-	class CommandServer : public IRequestHandler {
+	class CommandServer : public web::IRequestHandler {
 	private:
 		Storage::ptr _storage;
 	public:
@@ -112,23 +115,23 @@ namespace network::web {
 			return false;
 		}
 
-		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
-			auto vec = utils::common::split(request.get_url(), '/');
+		void handle_request(const web::HTTPRequestParser& request, byte_vector& response) override {
+			auto vec = dnszaikin::pollhttpd::utils::common::split(request.get_url(), '/');
 
 			if (vec.size() != 3) {
-				DefaultServerResponses::get_response(400, false, response);
+				web::DefaultServerResponses::get_response(400, false, response);
 				LOG_ERROR("Bad url: " << request.get_url());
 			} else {
 				std::string cmd = vec.at(2);
 				_storage->count(cmd);
-				DefaultServerResponses::get_response(200, false, response);
+				web::DefaultServerResponses::get_response(200, false, response);
 			}
 		}
 
 		void get_data(byte_vector& data) override {}
 	};
 
-	class StatisticServer : public IRequestHandler {
+	class StatisticServer : public web::IRequestHandler {
 	private:
 		Storage::ptr _storage;
 		Storage::data_map_t _map;
@@ -215,7 +218,7 @@ namespace network::web {
 			_thread_started = false;
 		}
 
-		void handle_request(const HTTPRequestParser& request, byte_vector& response) override {
+		void handle_request(const web::HTTPRequestParser& request, byte_vector& response) override {
 
 			get_last_data();
 
@@ -226,7 +229,7 @@ namespace network::web {
 				if (_answer.empty()) {
 					_answer = "No data<br/>";
 				}
-				tmp = HTTPResponseBuilder::build_http_response(200, true, _answer, -1);
+				tmp = web::HTTPResponseBuilder::build_http_response(200, true, _answer, -1);
 			}
 
 			response.assign(tmp.begin(), tmp.end());
@@ -243,7 +246,7 @@ namespace network::web {
 
 	class WebSessionHandlerFactory : public IHandlerFactory, public std::enable_shared_from_this<WebSessionHandlerFactory> {
 	private:
-		HTTPRequestParser _http_request_parser;
+		web::HTTPRequestParser _http_request_parser;
 		Storage::ptr _storage;
 
 	public:
@@ -258,7 +261,7 @@ namespace network::web {
 			LOG_DEBUG("Method: " << _http_request_parser.get_method_str() << ", url: " << _http_request_parser.get_url()
 					<< ", protocol: " << _http_request_parser.get_protocol() << ", keep-alive: " << keepalive);
 
-			auto vec = utils::common::split(_http_request_parser.get_url(), '/');
+			auto vec = dnszaikin::pollhttpd::utils::common::split(_http_request_parser.get_url(), '/');
 
 			if (!vec.empty()) {
 				auto cmd = vec.at(1);
@@ -274,11 +277,11 @@ namespace network::web {
 					return ptr;
 				} else {
 					keepalive = false;
-					DefaultServerResponses::get_response(404, false, response);
+					web::DefaultServerResponses::get_response(404, false, response);
 				}
 			} else {
 				keepalive = false;
-				DefaultServerResponses::get_response(400, false, response);
+				web::DefaultServerResponses::get_response(400, false, response);
 			}
 
 			return nullptr;

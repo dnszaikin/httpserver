@@ -5,8 +5,8 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_COMMONUTILS_H_
-#define SRC_COMMONUTILS_H_
+#ifndef POLLHTTPD_COMMONUTILS_H_
+#define POLLHTTPD_COMMONUTILS_H_
 
 #include <string>
 #include <chrono>
@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <cctype>
 #include <locale>
-
 
 #ifndef _WIN32
 #include <netdb.h>
@@ -29,7 +28,7 @@
 
 #include "Logger.h"
 
-namespace utils::network {
+namespace dnszaikin::pollhttpd::utils::network {
 
 	/*
 	 * returns string representation of errmo macros
@@ -62,6 +61,9 @@ namespace utils::network {
 		return std::make_pair<std::string_view, std::string_view>(hostname, port);
 	}
 
+	/*
+	 * returns http formatted date
+	 */
 	inline std::string get_http_date() {
 	    auto now = std::chrono::system_clock::now();
 	    auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -73,7 +75,7 @@ namespace utils::network {
 	}
 }
 
-namespace utils::common {
+namespace dnszaikin::pollhttpd::utils::common {
 
 	constexpr unsigned int str2int(const char* str, int h = 0)
 	{
@@ -116,4 +118,4 @@ namespace utils::common {
 }
 
 
-#endif /* SRC_COMMONUTILS_H_ */
+#endif /* POLLHTTPD_COMMONUTILS_H_ */

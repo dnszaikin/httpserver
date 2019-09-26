@@ -24,11 +24,11 @@ int main(int argc, char **argv) {
 
 	try {
 #ifndef _WIN32
-		using web = network::web::WebSession<network::UnixClientSocket>;
+		using web = dnszaikin::pollhttpd::network::web::WebSession<network::UnixClientSocket>;
 
-		network::AsyncUnixServer<web> server;
+		dnszaikin::pollhttpd::network::AsyncUnixServer<web> server;
 
-		auto&& wshandler = std::make_shared<network::web::WebSessionHandlerFactory>();
+		auto&& wshandler = std::make_shared<dnszaikin::pollhttpd::network::web::WebSessionHandlerFactory>();
 
 		server.set_handler_factory(wshandler);
 
@@ -47,11 +47,11 @@ int main(int argc, char **argv) {
 			throw std::runtime_error("Cant find winsock32.dll");
 		}
 
-		using web = network::web::WebSession<network::WindowsClientSocket>;
+		using web = dnszaikin::pollhttpd::network::web::WebSession<network::WindowsClientSocket>;
 
 		network::AsyncWindowsServer<web> server;
 
-		auto&& wshandler = std::make_shared<network::web::WebSessionHandlerFactory>();
+		auto&& wshandler = std::make_shared<dnszaikin::pollhttpd::network::web::WebSessionHandlerFactory>();
 
 		server.set_handler_factory(wshandler);
 

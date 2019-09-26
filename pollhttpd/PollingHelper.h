@@ -5,21 +5,21 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_POLLINGHELPER_H_
-#define SRC_POLLINGHELPER_H_
+#ifndef POLLHTTPD_POLLINGHELPER_H_
+#define POLLHTTPD_POLLINGHELPER_H_
 
 #include <vector>
 #include <unordered_map>
 
 #include "CommonUtils.h"
-#include "ISocket.h"
 #include "IHandlerFactory.h"
+#include "ISocket.h"
 
 #ifndef _WIN32
 #include <sys/poll.h>
 #endif
 
-namespace network {
+namespace dnszaikin::pollhttpd::network {
 
 	template <class T>
 	class PollingHelper {
@@ -126,4 +126,4 @@ namespace network {
 }
 
 
-#endif /* SRC_POLLINGHELPER_H_ */
+#endif /* POLLHTTPD_POLLINGHELPER_H_ */

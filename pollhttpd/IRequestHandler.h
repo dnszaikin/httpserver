@@ -5,13 +5,13 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_IREQUESTHANDLER_H_
-#define SRC_IREQUESTHANDLER_H_
+#ifndef POLLHTTPD_IREQUESTHANDLER_H_
+#define POLLHTTPD_IREQUESTHANDLER_H_
 
 #include "HTTPRequestParser.h"
 #include "Types.h"
 
-namespace network::web {
+namespace dnszaikin::pollhttpd::network::web {
 
 	class IRequestHandler {
 	public:
@@ -26,4 +26,4 @@ namespace network::web {
 
 
 
-#endif /* SRC_IREQUESTHANDLER_H_ */
+#endif /* POLLHTTPD_IREQUESTHANDLER_H_ */

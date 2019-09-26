@@ -5,8 +5,8 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_LOGGER_H_
-#define SRC_LOGGER_H_
+#ifndef POLLHTTPD_LOGGER_H_
+#define POLLHTTPD_LOGGER_H_
 
 #include <iostream>
 
@@ -18,4 +18,4 @@ static bool DEBUG = true;
 #define LOG_ERROR(msg) std::cout << msg << std::endl
 #define LOG_DEBUG(msg) if (Logger::DEBUG) {std::cout << "[DBG] " << __FILE__ << ":" << __LINE__ << "\t" << msg << std::endl;}
 
-#endif /* SRC_LOGGER_H_ */
+#endif /* POLLHTTPD_LOGGER_H_ */

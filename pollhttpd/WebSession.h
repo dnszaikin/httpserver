@@ -5,20 +5,20 @@
  *      Author: dnszaikin
  */
 
-#ifndef SRC_WEBSESSION_H_
-#define SRC_WEBSESSION_H_
+#ifndef POLLHTTPD_WEBSESSION_H_
+#define POLLHTTPD_WEBSESSION_H_
 
 #include "HTTPRequestParser.h"
 #include "IRequestHandler.h"
 
-namespace network::web {
+namespace dnszaikin::pollhttpd::network::web {
 
 	template <class T>
 	class WebSession: public T, std::enable_shared_from_this<WebSession<T>> {
 	private:
 		bool _keepalive;
 		std::stringstream _output;
-		network::web::IRequestHandler::ptr _ptr;
+		IRequestHandler::ptr _ptr;
 		std::thread _thread;
 		bool _thread_run;
 	public:
@@ -107,4 +107,4 @@ namespace network::web {
 
 
 
-#endif /* SRC_WEBSESSION_H_ */
+#endif /* POLLHTTPD_WEBSESSION_H_ */
